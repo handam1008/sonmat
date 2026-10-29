@@ -1,0 +1,1414 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#161e2b">
+<title>손맛 낚시</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=IBM+Plex+Sans+KR:wght@400;600&display=swap">
+<style>
+/* Layout: full-screen canvas of a dawn reservoir; HUD pinned top, action cue card + tab bar pinned bottom, sheets slide over. */
+:root{
+  color-scheme: dark;
+  --night:#161e2b;
+  --panel:rgba(18,26,38,.88);
+  --panel-solid:#1b2535;
+  --raise:#243146;
+  --ink:#f3ede2;
+  --muted:#a3afb6;
+  --line:rgba(243,237,226,.13);
+  --bobber:#ee5a3c;
+  --gold:#f2c14e;
+  --water:#2b4a58;
+  --good:#7fd18b;
+  --bad:#ff7a66;
+  --f-display:"Black Han Sans","Apple SD Gothic Neo","Noto Sans KR",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans KR","Apple SD Gothic Neo","Noto Sans KR",system-ui,sans-serif;
+  --gut-l:max(16px, env(safe-area-inset-left, 0px));
+  --gut-r:max(16px, env(safe-area-inset-right, 0px));
+  --safe-t:env(safe-area-inset-top, 0px);
+  --safe-b:env(safe-area-inset-bottom, 0px);
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;overflow:hidden;overscroll-behavior:none}
+body{background:var(--night);color:var(--ink);font:15px/1.45 var(--f-body);
+  -webkit-tap-highlight-color:transparent;touch-action:manipulation;user-select:none;-webkit-user-select:none}
+button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation}
+button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+[hidden]{display:none!important}
+canvas#scene{position:fixed;inset:0;width:100%;height:100%;display:block}
+
+/* ---------- HUD ---------- */
+#hud{position:fixed;left:0;right:0;top:0;z-index:5;
+  padding:calc(var(--safe-t) + 10px) var(--gut-r) 10px var(--gut-l);
+  display:grid;grid-template-columns:1fr auto;gap:8px 10px;align-items:center;
+  background:linear-gradient(to bottom, rgba(14,20,30,.72), rgba(14,20,30,0))}
+.money{font-family:var(--f-display);font-size:28px;letter-spacing:.01em;color:var(--gold);
+  font-variant-numeric:tabular-nums;line-height:1;text-shadow:0 2px 0 rgba(0,0,0,.35)}
+.money small{font-family:var(--f-body);font-size:12px;color:var(--muted);letter-spacing:.04em;display:block;margin-bottom:4px;text-shadow:none}
+.iconbtn{width:42px;height:42px;border-radius:12px;border:1px solid var(--line);background:rgba(20,28,40,.6);
+  display:grid;place-items:center}
+.iconbtn svg{width:22px;height:22px}
+.rank{grid-column:1 / -1;display:flex;align-items:center;gap:10px;min-width:0}
+.rank b{font-weight:600;font-size:13px;white-space:nowrap}
+.rank .track{flex:1;height:6px;border-radius:3px;background:rgba(243,237,226,.14);overflow:hidden;min-width:40px}
+.rank .fill{height:100%;background:var(--gold);border-radius:3px;transition:width .4s}
+.rank span{font-size:12px;color:var(--muted);white-space:nowrap;font-variant-numeric:tabular-nums}
+
+/* ---------- toast ---------- */
+#toast{position:fixed;left:50%;top:calc(var(--safe-t) + 92px);transform:translate(-50%,-8px);z-index:30;
+  background:var(--panel-solid);border:1px solid var(--line);border-radius:12px;padding:10px 14px;
+  font-weight:600;font-size:14px;max-width:calc(100% - 32px);text-align:center;opacity:0;
+  transition:opacity .2s, transform .2s;pointer-events:none;text-wrap:balance}
+#toast.on{opacity:1;transform:translate(-50%,0)}
+body.sheet-open #toast{top:auto;bottom:calc(156px + var(--safe-b))}
+
+/* ---------- cue card ---------- */
+#cue{position:fixed;left:0;right:0;bottom:calc(64px + var(--safe-b));z-index:4;
+  padding:0 var(--gut-r) 10px var(--gut-l);pointer-events:none}
+#cue.notabs{bottom:var(--safe-b);padding-bottom:16px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:14px 16px 16px;
+  backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);pointer-events:auto}
+.eyebrow{display:flex;justify-content:space-between;align-items:center;font-size:12px;letter-spacing:.06em;color:var(--muted)}
+.eyebrow .steps{display:flex;gap:4px}
+.eyebrow .steps i{width:16px;height:4px;border-radius:2px;background:rgba(243,237,226,.18)}
+.eyebrow .steps i.on{background:var(--bobber)}
+.eyebrow .steps i.done{background:rgba(238,90,60,.45)}
+.verb{font-family:var(--f-display);font-size:42px;line-height:1.05;margin:6px 0 4px;letter-spacing:.01em;text-wrap:balance}
+.verb.hot{color:var(--bobber)}
+.verb.gold{color:var(--gold)}
+.sub{color:var(--muted);font-size:14px;text-wrap:pretty}
+.bar{margin-top:12px;height:14px;border-radius:7px;background:rgba(243,237,226,.12);position:relative;overflow:hidden}
+.bar .fill{position:absolute;inset:0 auto 0 0;background:var(--bobber);border-radius:7px}
+.bar .mark{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--gold)}
+.bar .dot{position:absolute;top:50%;width:14px;height:14px;margin:-7px 0 0 -7px;border-radius:50%;background:var(--ink);box-shadow:0 0 0 3px rgba(22,30,43,.8)}
+.barlbl{display:flex;justify-content:space-between;margin-top:6px;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.cardbtn{margin-top:12px;width:100%;padding:12px;border-radius:12px;border:0;background:var(--gold);color:#241a06;font-weight:600}
+
+/* ---------- tabs ---------- */
+#tabs{position:fixed;left:0;right:0;bottom:0;z-index:6;display:grid;grid-template-columns:repeat(4,1fr);
+  padding:6px var(--gut-r) calc(6px + var(--safe-b)) var(--gut-l);gap:6px;
+  background:#0f1620;border-top:1px solid var(--line)}
+#tabs button{height:52px;border:0;border-radius:12px;background:transparent;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:2px;font-size:12px;color:var(--muted)}
+#tabs button svg{width:22px;height:22px}
+#tabs button.on{color:var(--ink);background:rgba(243,237,226,.07)}
+#tabs .cnt{font-variant-numeric:tabular-nums}
+#tabs .cnt.full{color:var(--bad);font-weight:600}
+
+/* ---------- sheets ---------- */
+#sheet{position:fixed;left:0;right:0;bottom:calc(64px + var(--safe-b));top:calc(var(--safe-t) + 96px);z-index:7;
+  padding:0 var(--gut-r) 10px var(--gut-l);display:flex;flex-direction:column}
+#sheet .card{flex:1;display:flex;flex-direction:column;min-height:0;padding:16px}
+.sheethead{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:10px}
+.sheethead h2{font-family:var(--f-display);font-weight:400;font-size:26px;margin:0;letter-spacing:.01em}
+.sheethead span{color:var(--muted);font-size:13px;font-variant-numeric:tabular-nums}
+.scroll{flex:1;overflow-y:auto;min-height:0;margin:0 -6px;padding:0 6px;-webkit-overflow-scrolling:touch}
+.empty{color:var(--muted);padding:28px 4px;text-align:center;text-wrap:balance}
+.row{display:grid;grid-template-columns:64px 1fr auto;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
+.row:last-child{border-bottom:0}
+.row canvas{width:64px;height:40px}
+.row .nm{font-weight:600;min-width:0}
+.row .meta{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.row .pr{font-variant-numeric:tabular-nums;font-weight:600;color:var(--gold);text-align:right}
+.tier{display:inline-block;font-size:11px;font-weight:600;padding:1px 7px;border-radius:999px;border:1px solid currentColor;margin-left:6px;vertical-align:1px}
+.sheetfoot{padding-top:12px;border-top:1px solid var(--line);margin-top:8px}
+.bigbtn{width:100%;padding:14px;border-radius:14px;border:0;background:var(--gold);color:#241a06;font-weight:600;font-size:16px;font-variant-numeric:tabular-nums}
+.bigbtn:disabled{background:rgba(243,237,226,.12);color:var(--muted)}
+.upg{display:grid;grid-template-columns:1fr auto;gap:4px 12px;align-items:center;padding:12px 0;border-bottom:1px solid var(--line)}
+.upg:last-child{border-bottom:0}
+.upg .nm{font-weight:600;display:flex;align-items:center;gap:8px}
+.lv{display:inline-flex;gap:3px}
+.lv i{width:7px;height:7px;border-radius:50%;background:rgba(243,237,226,.18)}
+.lv i.on{background:var(--gold)}
+.upg .ds{grid-column:1;font-size:12px;color:var(--muted)}
+.upg .fx{grid-column:1;font-size:13px;font-variant-numeric:tabular-nums}
+.upg .fx b{color:var(--good);font-weight:600}
+.upg button{grid-column:2;grid-row:1 / span 3;min-width:96px;padding:10px 12px;border-radius:12px;border:0;background:var(--gold);color:#241a06;font-weight:600;font-variant-numeric:tabular-nums}
+.upg button:disabled{background:rgba(243,237,226,.1);color:var(--muted)}
+.dex{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.dexc{border:1px solid var(--line);border-radius:12px;padding:8px 8px 10px;text-align:center;min-width:0;background:rgba(243,237,226,.03)}
+.dexc canvas{width:100%;height:auto;aspect-ratio:8/5;max-width:100%}
+.dexc .nm{font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dexc .meta{font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
+.set{display:flex;flex-direction:column;gap:16px}
+.set label.t{display:block;font-size:13px;color:var(--muted);margin-bottom:6px}
+.seg{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;background:rgba(243,237,226,.06);border-radius:12px;padding:4px}
+.seg button{border:0;background:transparent;padding:9px 4px;border-radius:9px;color:var(--muted)}
+.seg button.on{background:var(--raise);color:var(--ink);font-weight:600}
+.tog{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:4px 0}
+.tog small{display:block;color:var(--muted);font-size:12px}
+.switch{width:50px;height:30px;border-radius:15px;border:0;background:rgba(243,237,226,.16);position:relative;flex:none}
+.switch::after{content:"";position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:var(--ink);transition:transform .15s}
+.switch.on{background:var(--bobber)}
+.switch.on::after{transform:translateX(20px)}
+.ghost{padding:11px;border-radius:12px;border:1px solid var(--line);background:transparent;width:100%}
+.ghost.danger{color:var(--bad);border-color:rgba(255,122,102,.4)}
+.vibrow{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+
+/* ---------- modal ---------- */
+#modal{position:fixed;inset:0;z-index:20;display:grid;place-items:center;
+  padding:calc(var(--safe-t) + 16px) var(--gut-r) calc(var(--safe-b) + 16px) var(--gut-l);
+  background:rgba(8,12,18,.6)}
+#modal .card{width:100%;max-width:380px;text-align:center;padding:18px 18px 16px;background:var(--panel-solid)}
+#modal canvas{width:100%;height:auto;aspect-ratio:2/1;max-width:100%}
+#modal .nm{font-family:var(--f-display);font-size:34px;line-height:1.1;margin:4px 0 2px}
+#modal .stats{display:flex;justify-content:center;gap:18px;margin:8px 0 4px;font-variant-numeric:tabular-nums}
+#modal .stats div{display:flex;flex-direction:column;font-size:12px;color:var(--muted)}
+#modal .stats b{font-size:20px;color:var(--ink);font-weight:600}
+#modal .stats .gp b{color:var(--gold)}
+#modal .desc{color:var(--muted);font-size:13px;margin:6px 0 2px;text-wrap:balance}
+.badges{display:flex;justify-content:center;gap:6px;min-height:22px;flex-wrap:wrap;margin-top:6px}
+.badge{font-size:12px;font-weight:600;padding:2px 9px;border-radius:999px;background:var(--bobber);color:#fff}
+.badge.g{background:var(--gold);color:#241a06}
+.mbtns{display:grid;grid-template-columns:1fr 1.4fr;gap:8px;margin-top:14px}
+.mbtns button{padding:13px;border-radius:12px;border:0;font-weight:600}
+.mbtns .rel{background:rgba(243,237,226,.1)}
+.mbtns .keep{background:var(--gold);color:#241a06}
+
+/* ---------- title ---------- */
+#title{position:fixed;inset:0;z-index:25;display:flex;flex-direction:column;justify-content:flex-end;
+  padding:calc(var(--safe-t) + 24px) var(--gut-r) calc(var(--safe-b) + 20px) var(--gut-l);
+  background:linear-gradient(to bottom, rgba(22,30,43,0) 0%, rgba(22,30,43,.5) 30%, rgba(22,30,43,.96) 62%)}
+#title .logo{font-family:var(--f-display);font-size:76px;line-height:.95;letter-spacing:.01em}
+#title .logo em{font-style:normal;color:var(--bobber)}
+#title .tag{color:var(--muted);margin:8px 0 18px;font-size:14px}
+#title ol{list-style:none;margin:0 0 18px;padding:0;display:flex;flex-direction:column;gap:9px;counter-reset:s}
+#title li{display:grid;grid-template-columns:26px 1fr;gap:10px;align-items:start;font-size:14px;counter-increment:s}
+#title li::before{content:counter(s);width:24px;height:24px;border-radius:50%;background:var(--raise);display:grid;place-items:center;
+  font-weight:600;font-size:12px;color:var(--gold)}
+#title li b{font-weight:600}
+#title li span{color:var(--muted)}
+#title .warn{font-size:12px;color:var(--muted);margin:0 0 12px;text-wrap:pretty}
+#title .warn.bad{color:var(--bad)}
+#title .bigbtn{font-size:18px;padding:16px}
+
+/* ---------- calibration ---------- */
+#calib{position:fixed;inset:0;z-index:26;display:grid;place-items:center;text-align:center;
+  padding:24px var(--gut-r) 24px var(--gut-l);background:rgba(22,30,43,.94)}
+#calib .verb{font-size:34px}
+#calib .bar{max-width:280px;margin:18px auto 0}
+
+/* ---------- sim (button mode) ---------- */
+#sim{position:fixed;left:0;right:0;z-index:8;display:flex;gap:8px;justify-content:center;flex-wrap:wrap;
+  top:calc(var(--safe-t) + 104px);padding:0 var(--gut-r) 0 var(--gut-l);pointer-events:none}
+#sim button{pointer-events:auto;padding:10px 14px;border-radius:12px;border:1px dashed rgba(242,193,78,.6);
+  background:rgba(20,28,40,.82);color:var(--gold);font-weight:600;font-size:14px}
+#sim .lbl{width:100%;text-align:center;font-size:11px;color:var(--muted);letter-spacing:.05em}
+
+/* ---------- debug ---------- */
+#debug{position:fixed;left:var(--gut-l);right:var(--gut-r);top:calc(var(--safe-t) + 150px);z-index:9;
+  font:11px/1.35 ui-monospace,Menlo,Consolas,monospace;color:#cfe;background:rgba(0,0,0,.55);
+  border-radius:8px;padding:6px 8px;pointer-events:none;white-space:pre-wrap;font-variant-numeric:tabular-nums}
+
+/* ---------- vibration visualizer ---------- */
+#buzz{position:fixed;inset:0;z-index:15;pointer-events:none;opacity:0;
+  box-shadow:inset 0 0 0 var(--bw,6px) var(--bobber), inset 0 0 60px rgba(238,90,60,.35)}
+#buzz.on{animation:buzz var(--bd,200ms) linear}
+@keyframes buzz{0%{opacity:var(--bo,.9)}80%{opacity:var(--bo,.9)}100%{opacity:0}}
+
+#rotate{position:fixed;inset:0;z-index:40;background:var(--night);display:grid;place-items:center;text-align:center;padding:24px}
+#rotate .verb{font-size:30px}
+
+@media (prefers-reduced-motion: reduce){
+  #toast,.rank .fill,.switch::after{transition:none}
+}
+</style>
+</head>
+<body>
+<canvas id="scene"></canvas>
+
+<header id="hud" hidden>
+  <div class="money"><small>보유 금액</small><span id="money">₩0</span></div>
+  <button class="iconbtn" id="gear" aria-label="설정">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 13.5a7.6 7.6 0 0 0 0-3l2-1.5-2-3.4-2.3.9a7.5 7.5 0 0 0-2.6-1.5L14 2.5h-4l-.5 2.5A7.5 7.5 0 0 0 6.9 6.5L4.6 5.6l-2 3.4 2 1.5a7.6 7.6 0 0 0 0 3l-2 1.5 2 3.4 2.3-.9a7.5 7.5 0 0 0 2.6 1.5l.5 2.5h4l.5-2.5a7.5 7.5 0 0 0 2.6-1.5l2.3.9 2-3.4z"/></svg>
+  </button>
+  <div class="rank"><b id="rankName">초보 낚시꾼</b><div class="track"><div class="fill" id="rankFill" style="width:0%"></div></div><span id="rankNext"></span></div>
+</header>
+
+<div id="toast" role="status" aria-live="polite"></div>
+<div id="sim" hidden></div>
+<div id="debug" hidden></div>
+<section id="cue" hidden></section>
+
+<nav id="tabs" hidden>
+  <button data-tab="fish" class="on">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M5 3v14a4 4 0 0 0 8 0v-2"/><path d="M5 3l12 6"/><circle cx="17" cy="11.5" r="1.6"/></svg>낚시</button>
+  <button data-tab="bucket">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M4 8h16l-1.6 11.2a2 2 0 0 1-2 1.8H7.6a2 2 0 0 1-2-1.8z"/><path d="M7 8a5 5 0 0 1 10 0"/></svg><span>물고기통 <span class="cnt" id="bucketCnt">0/5</span></span></button>
+  <button data-tab="shop">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M4 10h16v10H4z"/><path d="M3 10l2-6h14l2 6"/><path d="M10 20v-5h4v5"/></svg>상점</button>
+  <button data-tab="dex">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3z"/><path d="M5 17a3 3 0 0 1 3-3h11"/></svg>도감</button>
+</nav>
+
+<div id="sheet" hidden><div class="card" id="sheetCard"></div></div>
+<div id="modal" hidden><div class="card" id="modalCard"></div></div>
+<div id="buzz"></div>
+
+<div id="title">
+  <div class="logo">손<em>맛</em></div>
+  <div class="tag">저수지 낚시 프로토타입 · 폰을 낚싯대처럼 휘둘러</div>
+  <ol>
+    <li><div><b>뒤로 젖히기</b> <span>폰을 어깨 뒤로 넘겨. 진동이 오면 준비 끝</span></div></li>
+    <li><div><b>앞으로 휘두르기</b> <span>세게 휘두를수록 멀리 날아가</span></div></li>
+    <li><div><b>화면 연타</b> <span>톡톡 진동을 느끼며 줄을 감아</span></div></li>
+    <li><div><b>좌우로 흔들기</b> <span>큰 진동 = 물었다! 게이지를 채워</span></div></li>
+    <li><div><b>뒤로 제치기</b> <span>엄청 큰 진동이 오면 확 끌어올려</span></div></li>
+  </ol>
+  <p class="warn" id="secureWarn">폰을 꽉 잡고, 주변에 사람이나 물건이 없는 곳에서 휘둘러.</p>
+  <button class="bigbtn" id="startBtn">낚시 시작</button>
+</div>
+
+<div id="calib" hidden>
+  <div>
+    <div class="eyebrow" style="justify-content:center">센서 맞추는 중</div>
+    <div class="verb">폰을 세워서<br>화면이 나를 보게</div>
+    <div class="sub">평소에 폰 보듯이 들고 잠깐만 가만히</div>
+    <div class="bar"><div class="fill" id="calibFill" style="width:0%"></div></div>
+  </div>
+</div>
+
+<div id="rotate" hidden><div><div class="verb">세로로 들어줘</div><div class="sub">이 게임은 세로 화면 전용이야</div></div></div>
+
+<script>
+'use strict';
+/* =========================================================
+   손맛 낚시 — 폰 센서 낚시 프로토타입
+   준비(뒤로 젖히기) → 던지기(앞으로 휘두르기) → 감기(연타)
+   → 힘겨루기(좌우 흔들기) → 끌어올리기(뒤로 제치기)
+   ========================================================= */
+
+const TAU = Math.PI * 2;
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const lerp = (a, b, t) => a + (b - a) * t;
+const rand = (a, b) => a + Math.random() * (b - a);
+const won = n => Math.round(n).toLocaleString('ko-KR') + '원';
+const zoneName = d => d >= 45 ? '아주 먼 곳' : d >= 25 ? '먼 곳' : d >= 10 ? '중간 거리' : '가까운 물가';
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+/* ---------------- 데이터 ---------------- */
+const TIERS = [
+  {name:'흔함', color:'#b9c3c7'},
+  {name:'고급', color:'#7fd18b'},
+  {name:'희귀', color:'#6fb2ff'},
+  {name:'대물', color:'#c592ff'},
+  {name:'전설', color:'#ffc54a'},
+];
+const JUNK_TIER = {name:'쓰레기', color:'#8f948f'};
+const tierOf = f => f.tier < 0 ? JUNK_TIER : TIERS[f.tier];
+
+// d: 나타나는 거리(m), str: 힘(힘겨루기 난이도), w: 등장 가중치
+const FISH = [
+  {id:'pirami',  name:'피라미',  tier:0, base:400,    size:[8,15],   str:0.7, d:[0,20],   w:30,  body:'#9fb3c4', belly:'#eef1f0', fin:'#d98a7a', depth:0.30, pattern:'bars',   pat:'rgba(214,108,118,.55)', head:'pointed', desc:'얕은 물가를 떼로 다니는 작은 물고기'},
+  {id:'bluegill',name:'블루길',  tier:0, base:700,    size:[10,22],  str:0.9, d:[0,24],   w:28,  body:'#6f8a6a', belly:'#e8b04e', fin:'#4f6650', depth:0.62, pattern:'bars',   pat:'rgba(34,52,44,.35)',   head:'round',   desc:'아가미 끝 검은 점이 특징인 외래종'},
+  {id:'bungeo',  name:'붕어',    tier:0, base:1200,   size:[15,35],  str:1.2, d:[4,32],   w:25,  body:'#a88a4c', belly:'#e9dbac', fin:'#7d6638', depth:0.50, pattern:'scales', pat:'rgba(70,50,20,.30)',   head:'round',   desc:'저수지 낚시의 기본. 손맛 좋은 대표 어종'},
+  {id:'bass',    name:'배스',    tier:1, base:2500,   size:[25,50],  str:1.7, d:[10,40],  w:16,  body:'#6b7f4a', belly:'#e4e2c8', fin:'#55663a', depth:0.40, pattern:'blotch', pat:'rgba(28,38,18,.55)',   head:'big',     desc:'입이 큰 포식자. 걸리면 세게 저항해'},
+  {id:'ingeo',   name:'잉어',    tier:2, base:5500,   size:[40,80],  str:2.3, d:[16,55],  w:9,   body:'#b0903f', belly:'#efe0b0', fin:'#a5603a', depth:0.42, pattern:'scales', pat:'rgba(80,55,15,.34)',   head:'barbel',  desc:'저수지의 힘센 터줏대감'},
+  {id:'megi',    name:'메기',    tier:2, base:8000,   size:[40,90],  str:2.6, d:[22,70],  w:6,   body:'#4c4f45', belly:'#c9c6b3', fin:'#3a3c34', depth:0.28, pattern:'mottle', pat:'rgba(20,22,18,.45)',   head:'flat',    desc:'긴 수염으로 바닥을 더듬는 야행성 물고기'},
+  {id:'ssogari', name:'쏘가리',  tier:3, base:14000,  size:[25,50],  str:2.8, d:[26,70],  w:3.5, body:'#a8904e', belly:'#efe2b8', fin:'#8a7238', depth:0.40, pattern:'spots',  pat:'rgba(40,30,15,.72)',   head:'big',     desc:'표범 무늬를 두른 민물의 귀족'},
+  {id:'gamulchi',name:'가물치',  tier:3, base:22000,  size:[50,90],  str:3.3, d:[30,80],  w:2.2, body:'#3e4a3c', belly:'#b9b8a2', fin:'#2e372d', depth:0.27, pattern:'blotch', pat:'rgba(14,20,13,.65)',   head:'flat', longFin:true, desc:'뱀 같은 머리를 가진 사나운 포식자'},
+  {id:'gold',    name:'황금잉어',tier:4, base:100000, size:[60,100], str:4.2, d:[45,999], w:0.7, body:'#e7b437', belly:'#fff0b8', fin:'#f08a2c', depth:0.42, pattern:'scales', pat:'rgba(150,90,10,.35)',  head:'barbel', shine:true, desc:'저수지의 전설. 본 사람은 많은데 잡은 사람은 없대'},
+  {id:'boot',    name:'장화',    tier:-1, base:50,    size:[24,30],  str:0.5, d:[0,999],  w:4,   junk:'boot', desc:'누가 버렸지…'},
+  {id:'can',     name:'빈 깡통', tier:-1, base:20,    size:[10,12],  str:0.4, d:[0,999],  w:4,   junk:'can',  desc:'분리수거는 잘 하자'},
+];
+const FISH_BY_ID = Object.fromEntries(FISH.map(f => [f.id, f]));
+const REAL_FISH = FISH.filter(f => !f.junk);
+
+const maxCast   = l => 22 + l * 9;      // m
+const reelStep  = l => 0.8 + l * 0.3;   // m / 탭
+const bucketCap = l => 5 + l * 2;
+const UPG = [
+  {id:'rod',    name:'낚싯대',   desc:'더 멀리 던져. 멀리 갈수록 큰 물고기', costs:[3000,9000,24000,60000,150000], fx:l => `최대 ${maxCast(l)}m`},
+  {id:'reel',   name:'릴',       desc:'한 번 탭할 때 더 많이 감아',           costs:[2000,6000,15000,36000,90000],  fx:l => `탭당 ${reelStep(l).toFixed(1)}m`},
+  {id:'line',   name:'낚싯줄',   desc:'힘겨루기 게이지가 더 잘 차',           costs:[2500,8000,20000,50000,120000], fx:l => `힘 +${l * 15}%`},
+  {id:'bait',   name:'미끼',     desc:'귀한 물고기가 더 자주 물어',           costs:[4000,12000,30000,72000,170000],fx:l => `희귀 확률 +${l * 25}%`},
+  {id:'bucket', name:'물고기통', desc:'한 번에 더 많이 담아',                 costs:[1500,5000,12000,30000,70000],  fx:l => `${bucketCap(l)}마리`},
+];
+const RANKS = [
+  {name:'초보 낚시꾼',      at:0},
+  {name:'동네 낚시꾼',      at:20000},
+  {name:'저수지 단골',      at:100000},
+  {name:'저수지 터줏대감',  at:400000},
+  {name:'강태공',          at:1000000},
+  {name:'전설의 강태공',    at:2500000},
+];
+
+// 감도 프리셋: prep=준비 기울기(°), rot=휘두르기 회전속도(°/s), yank=제치기 기울기 변화(°)
+const SWING_P = [
+  {name:'쉬움',   prep:12, rot:150, yank:22},
+  {name:'보통',   prep:20, rot:220, yank:30},
+  {name:'어려움', prep:30, rot:320, yank:40},
+];
+// lin=좌우 가속(m/s²), rot=좌우 회전(°/s)
+const SHAKE_P = [
+  {name:'쉬움',   lin:4.5, rot:130},
+  {name:'보통',   lin:7,   rot:190},
+  {name:'어려움', lin:10,  rot:260},
+];
+
+const VIB = {
+  ready: 150,          // 던질 준비 완료
+  land:  60,           // 착수
+  tap:   18,           // 감을 때 미세 진동
+  nibble:[25,70,25],   // 입질 전조
+  bite:  450,          // 물었다 (큰 진동)
+  tug:   80,           // 물고기 몸부림
+  yank:  1000,         // 끌어올려 (엄청 큰 진동)
+  catch: [40,40,40,40,160],
+  lost:  [200,100,200],
+  coin:  [25,35,25],
+};
+const YANK_WINDOW = 2.4;   // s
+const FIGHT_LIMIT = 12;    // s
+
+/* ---------------- 저장 ---------------- */
+const SAVE_KEY = 'sonmat-v1';
+const fresh = () => ({money:0, earned:0, up:{rod:0,reel:0,line:0,bait:0,bucket:0}, dex:{}, bucket:[],
+  set:{swing:1, shake:1, vib:true, sound:true, sim:false, debug:false}});
+let S = fresh();
+try {
+  const raw = localStorage.getItem(SAVE_KEY);
+  if (raw) { const o = JSON.parse(raw); S = Object.assign(fresh(), o); S.up = Object.assign(fresh().up, o.up); S.set = Object.assign(fresh().set, o.set); }
+} catch (e) {}
+function persist(){ try { localStorage.setItem(SAVE_KEY, JSON.stringify(S)); } catch (e) {} }
+
+/* ---------------- 진동 + 화면 진동 표시 ---------------- */
+const buzzEl = $('#buzz');
+function vib(p){
+  const total = Array.isArray(p) ? p.reduce((a, b) => a + b, 0) : p;
+  const on = Array.isArray(p) ? p.filter((_, i) => i % 2 === 0).reduce((a, b) => a + b, 0) : p;
+  if (S.set.vib && navigator.vibrate) { try { navigator.vibrate(p); } catch (e) {} }
+  // 화면 가장자리로도 진동을 보여줌 (PC·버튼 모드·영상용)
+  const strength = clamp(on / 500, 0.12, 1);
+  buzzEl.style.setProperty('--bd', Math.max(90, total) + 'ms');
+  buzzEl.style.setProperty('--bw', Math.round(3 + strength * 9) + 'px');
+  buzzEl.style.setProperty('--bo', (0.35 + strength * 0.6).toFixed(2));
+  buzzEl.classList.remove('on'); void buzzEl.offsetWidth; buzzEl.classList.add('on');
+  G.shakeCam = Math.max(G.shakeCam, strength * 6);
+}
+
+/* ---------------- 효과음 (Web Audio 합성) ---------------- */
+let AC = null;
+function audioInit(){
+  try { AC = AC || new (window.AudioContext || window.webkitAudioContext)(); if (AC.state === 'suspended') AC.resume(); } catch (e) { AC = null; }
+}
+function tone(freq, dur, type = 'sine', gain = 0.15, when = 0, slide = 0){
+  if (!AC || !S.set.sound) return;
+  const t = AC.currentTime + when, o = AC.createOscillator(), g = AC.createGain();
+  o.type = type; o.frequency.setValueAtTime(freq, t);
+  if (slide) o.frequency.exponentialRampToValueAtTime(Math.max(30, freq + slide), t + dur);
+  g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(gain, t + 0.008); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  o.connect(g).connect(AC.destination); o.start(t); o.stop(t + dur + 0.02);
+}
+let noiseBuf = null;
+function noise(dur, f0, f1, gain = 0.25, q = 1.2){
+  if (!AC || !S.set.sound) return;
+  if (!noiseBuf) { noiseBuf = AC.createBuffer(1, AC.sampleRate, AC.sampleRate); const d = noiseBuf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; }
+  const t = AC.currentTime, s = AC.createBufferSource(), f = AC.createBiquadFilter(), g = AC.createGain();
+  s.buffer = noiseBuf; f.type = 'bandpass'; f.Q.value = q;
+  f.frequency.setValueAtTime(f0, t); f.frequency.exponentialRampToValueAtTime(f1, t + dur);
+  g.gain.setValueAtTime(gain, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  s.connect(f).connect(g).connect(AC.destination); s.start(t); s.stop(t + dur + 0.05);
+}
+const sfx = {
+  ready(){ tone(660, .12, 'triangle', .12); },
+  whoosh(){ noise(.45, 600, 2600, .28, .8); },
+  splash(){ noise(.35, 1400, 300, .35, .7); },
+  tick(){ tone(2200, .025, 'square', .04); },
+  nibble(){ tone(520, .05, 'sine', .08); tone(520, .05, 'sine', .08, .09); },
+  bite(){ tone(180, .3, 'sawtooth', .12, 0, -60); noise(.25, 900, 400, .25); },
+  yank(){ tone(240, .5, 'sawtooth', .14, 0, 260); },
+  catch(){ [660, 880, 1100, 1320].forEach((f, i) => tone(f, .14, 'triangle', .12, i * .08)); },
+  lost(){ tone(300, .25, 'triangle', .12, 0, -140); tone(200, .3, 'triangle', .1, .2, -80); },
+  coin(){ tone(1320, .08, 'square', .06); tone(1760, .16, 'square', .06, .07); },
+};
+
+/* =========================================================
+   센서 처리 — devicemotion → 의미 있는 동작 이벤트
+   tilt: 0° = 세워 든 상태, + = 윗부분이 뒤(내 쪽)로 넘어감, − = 앞으로 숙임
+   ========================================================= */
+const SN = {
+  ok:false, n:0, last:0, hz:0, hzN:0, hzT:0, invert:1,
+  gx:0, gy:9.8, gz:0, tilt:0, tiltRaw:0, prevRaw:null, rot:0, linX:0, rz:0, ry:0,
+  sw:{st:'idle', needLow:true, t:0, t0:0, peak:0, from:0},
+  sh:[{sign:0, peak:0}, {sign:0, peak:0}, {sign:0, peak:0}], shLast:0, shCount:0,
+  yank:{on:false, start:0, ref:0},
+};
+const swingP = () => SWING_P[S.set.swing];
+const shakeP = () => SHAKE_P[S.set.shake];
+
+function onMotion(e){
+  const ag = e.accelerationIncludingGravity;
+  if (!ag || ag.x == null || ag.y == null || ag.z == null) return;
+  const now = performance.now();
+  SN.ok = true; SN.n++;
+  SN.hzN++; if (now - SN.hzT > 1000) { SN.hz = SN.hzN; SN.hzN = 0; SN.hzT = now; }
+  const dt = SN.last ? clamp((now - SN.last) / 1000, 0.004, 0.1) : 0.016; SN.last = now;
+  const inv = SN.invert;
+  const ax = ag.x * inv, ay = ag.y * inv, az = ag.z * inv;
+  const k = 1 - Math.exp(-dt / 0.08);           // 중력 추정 저역통과 (~80ms)
+  SN.gx += (ax - SN.gx) * k; SN.gy += (ay - SN.gy) * k; SN.gz += (az - SN.gz) * k;
+  SN.tiltRaw = Math.atan2(-az, ay) * 180 / Math.PI;
+  SN.tilt = Math.atan2(-SN.gz, SN.gy) * 180 / Math.PI;
+
+  const rr = e.rotationRate;
+  if (rr && rr.alpha != null) {
+    SN.rot = Math.hypot(rr.alpha || 0, rr.beta || 0, rr.gamma || 0);
+    SN.rz = rr.alpha || 0; SN.ry = rr.gamma || 0;
+  } else {
+    SN.rot = SN.prevRaw == null ? 0 : Math.abs(SN.tiltRaw - SN.prevRaw) / dt;
+    SN.rz = 0; SN.ry = 0;
+  }
+  SN.prevRaw = SN.tiltRaw;
+  const la = e.acceleration;
+  const lx = (la && la.x != null) ? la.x * inv : (ax - SN.gx);
+  SN.linX += (lx - SN.linX) * 0.6;
+
+  if (S.set.sim) return;      // 버튼 모드에선 센서 동작을 무시
+  detectSwing(now);
+  detectShake(now);
+  detectYank(now);
+}
+
+function resetSwing(){ const sw = SN.sw; sw.st = 'idle'; sw.needLow = true; }
+
+function detectSwing(now){
+  const sw = SN.sw, P = swingP(), t = SN.tilt;
+  if (sw.needLow) { if (t < P.prep - 12) sw.needLow = false; else return; }
+  switch (sw.st) {
+    case 'idle':
+      if (t >= P.prep) { sw.st = 'hold'; sw.t = now; }
+      break;
+    case 'hold':
+      if (t < P.prep - 6) sw.st = 'idle';
+      else if (now - sw.t > 280) { sw.st = 'armed'; emit('armed'); }
+      break;
+    case 'armed':
+      if (t < P.prep - 14 || SN.rot > P.rot * 0.8) { sw.st = 'swing'; sw.t0 = now; sw.peak = SN.rot; sw.from = Math.max(t, P.prep); }
+      break;
+    case 'swing':
+      sw.peak = Math.max(sw.peak, SN.rot);
+      if (t < sw.from - 40 || t < -15) {
+        if (sw.peak >= P.rot) emit('swing', clamp((sw.peak - P.rot) / (P.rot * 2), 0, 1));
+        else emit('weak');
+        sw.st = 'idle'; sw.needLow = true;
+      } else if (now - sw.t0 > 900) {
+        if (t >= P.prep - 6) sw.st = 'armed';
+        else { sw.st = 'idle'; emit('unarmed'); }
+      }
+      break;
+  }
+}
+
+function detectShake(now){
+  const P = shakeP();
+  const vals = [SN.linX, SN.rz, SN.ry], thr = [P.lin, P.rot, P.rot];
+  for (let i = 0; i < 3; i++) {
+    const c = SN.sh[i], v = vals[i], s = Math.sign(v);
+    if (Math.abs(v) > Math.abs(c.peak)) c.peak = v;
+    if (s !== 0 && s !== c.sign && Math.abs(v) > thr[i] * 0.25) {
+      if (Math.abs(c.peak) >= thr[i] && now - SN.shLast > 110) {
+        SN.shLast = now; SN.shCount++;
+        emit('shake', clamp(Math.abs(c.peak) / thr[i], 1, 2));
+      }
+      c.sign = s; c.peak = v;
+    }
+  }
+}
+
+function startYankWatch(){ SN.yank = {on:true, start:performance.now() + 150, ref:SN.tilt}; }
+function stopYankWatch(){ SN.yank.on = false; }
+function detectYank(now){
+  const y = SN.yank;
+  if (!y.on) return;
+  if (now < y.start) { y.ref = SN.tilt; return; }
+  const P = swingP();
+  const need = clamp(Math.min(P.yank, 85 - y.ref), 12, P.yank);
+  const dSm = SN.tilt - y.ref;
+  // 흔들기 중 생기는 잡음에 속지 않도록, 회전 속도로 빨리 인정할 때도 실제 기울기 변화를 함께 확인
+  if (dSm >= need || (SN.rot >= P.rot && dSm >= need * 0.55)) { y.on = false; emit('yank'); }
+}
+
+/* =========================================================
+   게임 상태
+   phase: title · idle · ready · flying · reel · fight · yank · jump · result · lost
+   ========================================================= */
+const G = {
+  phase:'title', phaseT:0, time:0,
+  castD:0, lureD:0, plan:null, fight:null, flight:null, jump:null, lostMsg:'',
+  tip:{x:0, y:0}, bend:0, ripples:[], drops:[], shakeCam:0, lastTap:0, tapCount:0,
+};
+let tab = 'fish';
+
+function emit(name, data){ handle(name, data); }
+
+function bucketFull(){ return S.bucket.length >= bucketCap(S.up.bucket); }
+
+function setPhase(p){
+  G.phase = p; G.phaseT = 0;
+  if (p === 'idle') { resetSwing(); stopYankWatch(); }
+  renderCue(); renderChrome(); renderSim();
+}
+
+function handle(name, data){
+  switch (G.phase) {
+    case 'idle':
+      if (name === 'armed') {
+        if (bucketFull()) { toast('물고기통이 가득 찼어. 먼저 팔고 오자'); vib([60, 60, 60]); resetSwing(); return; }
+        setPhase('ready'); vib(VIB.ready); sfx.ready();
+      }
+      break;
+    case 'ready':
+      if (name === 'unarmed') setPhase('idle');
+      else if (name === 'swing') cast(data);
+      else if (name === 'weak') { toast('너무 살살 휘둘렀어. 팔 전체로 세게!'); setPhase('idle'); }
+      break;
+    case 'reel':
+      if (name === 'tap') reelTap();
+      break;
+    case 'fight':
+      if (name === 'shake') shakeHit(data);
+      break;
+    case 'yank':
+      if (name === 'yank') landFish();
+      break;
+  }
+}
+
+/* ---------- 던지기 ---------- */
+function rollCatch(d){
+  const b = S.up.bait;
+  if (Math.random() < Math.max(0.04, 0.14 - b * 0.02)) return null;   // 빈 바늘
+  const boost = [0, 0.15, 0.25, 0.35, 0.5];
+  const pool = FISH.filter(f => d >= f.d[0] && d <= f.d[1])
+    .map(f => ({f, w:f.w * (f.tier > 0 ? 1 + b * boost[f.tier] : 1)}));
+  let r = Math.random() * pool.reduce((a, p) => a + p.w, 0);
+  for (const p of pool) { r -= p.w; if (r <= 0) return p.f; }
+  return pool[pool.length - 1].f;
+}
+
+function cast(power){
+  const maxD = maxCast(S.up.rod);
+  G.castD = Math.round((5 + (maxD - 5) * (0.25 + 0.75 * power)) * 10) / 10;
+  const f = rollCatch(G.castD);
+  G.plan = f ? {fish:f, biteAt:Math.max(2, G.castD * rand(0.3, 0.85)), nibbled:false} : null;
+  G.flight = {dur:0.55 + G.castD / 70, power};
+  sfx.whoosh();
+  setPhase('flying');
+}
+
+function landLure(){
+  G.lureD = G.castD; G.tapCount = 0;
+  addRipple(G.castD, 1.4);
+  vib(VIB.land); sfx.splash();
+  setPhase('reel');
+  toast(`${G.castD.toFixed(1)}m 날아갔어!`);
+}
+
+/* ---------- 감기 ---------- */
+function reelTap(){
+  const step = reelStep(S.up.reel);
+  G.lureD = Math.max(0, G.lureD - step); G.tapCount++; G.lastTap = G.time;
+  vib(VIB.tap); sfx.tick();
+  const p = G.plan;
+  if (p) {
+    if (!p.nibbled && G.lureD - p.biteAt < step * 2.2) { p.nibbled = true; setTimeout(() => { if (G.phase === 'reel') { vib(VIB.nibble); sfx.nibble(); addRipple(G.lureD, .6); } }, 60); }
+    if (G.lureD <= p.biteAt) { bite(); return; }
+  }
+  if (G.lureD <= 0.5) { lose('빈 바늘이야… 다시 던져보자', false); return; }
+  updateCueBars();
+}
+
+/* ---------- 힘겨루기 ---------- */
+function bite(){
+  const f = G.plan.fish;
+  G.fight = {gauge:35, t:0, nextTug:rand(1.0, 1.6), str:f.str};
+  vib(VIB.bite); sfx.bite(); addRipple(G.lureD, 1.2); splash(G.lureD, 10);
+  setPhase('fight');
+}
+function shakeHit(ratio){
+  const fi = G.fight, line = S.up.line;
+  const fill = 8 / Math.pow(fi.str, 0.35) * (1 + 0.15 * line) * (0.85 + 0.15 * ratio);
+  fi.gauge = Math.min(100, fi.gauge + fill);
+  if (Math.random() < 0.35) splash(G.lureD, 3);
+  if (fi.gauge >= 100) startYank();
+  else updateCueBars();
+}
+function startYank(){
+  vib(VIB.yank); sfx.yank();
+  startYankWatch();
+  setPhase('yank');
+}
+
+/* ---------- 끌어올리기 ---------- */
+function landFish(){
+  stopYankWatch();
+  const f = G.plan.fish;
+  const t = Math.pow(Math.random(), 1.5);
+  const size = Math.round((f.size[0] + (f.size[1] - f.size[0]) * t) * 10) / 10;
+  const mid = (f.size[0] + f.size[1]) / 2;
+  const price = f.junk ? f.base : Math.round(f.base * Math.pow(size / mid, 1.4) / 10) * 10;
+  const rec = S.dex[f.id];
+  const isNew = !rec, isBest = !!rec && size > rec.best;
+  S.dex[f.id] = {n:(rec ? rec.n : 0) + 1, best:Math.max(rec ? rec.best : 0, size)};
+  persist();
+  G.jump = {f, size, price, isNew, isBest, t:0, x0:null};
+  splash(G.lureD, 14); addRipple(G.lureD, 1.6);
+  vib(VIB.catch); sfx.catch();
+  setPhase('jump');
+}
+
+function lose(msg, wasFish = true){
+  stopYankWatch();
+  G.lostMsg = msg;
+  if (wasFish) { vib(VIB.lost); sfx.lost(); splash(G.lureD, 6); }
+  setPhase('lost');
+  toast(msg);
+}
+
+/* ---------- 매 프레임 ---------- */
+function update(dt){
+  G.time += dt; G.phaseT += dt;
+  G.shakeCam *= Math.pow(0.002, dt);
+  switch (G.phase) {
+    case 'flying':
+      if (G.phaseT >= G.flight.dur) landLure();
+      break;
+    case 'fight': {
+      const fi = G.fight, line = S.up.line;
+      fi.t += dt;
+      fi.gauge -= (4 + 3 * fi.str) * (1 - 0.08 * line) * dt;
+      fi.nextTug -= dt;
+      if (fi.nextTug <= 0) {
+        fi.nextTug = rand(1.1, 1.9);
+        fi.gauge -= 1.5 * fi.str;
+        vib(VIB.tug); splash(G.lureD, 4); addRipple(G.lureD, .8);
+      }
+      if (fi.gauge <= 0) lose('물고기가 도망갔어… 더 빨리 흔들어!');
+      else if (fi.t > FIGHT_LIMIT) lose('힘이 빠졌어… 물고기가 줄을 끊었어');
+      else updateCueBars();
+      break;
+    }
+    case 'yank':
+      if (G.phaseT > YANK_WINDOW) lose('타이밍을 놓쳤어. 엄청 큰 진동이 오면 바로 제쳐!');
+      else updateCueBars();
+      break;
+    case 'jump':
+      G.jump.t += dt;
+      if (G.jump.t > 1.0) { setPhase('result'); openCatchModal(); }
+      break;
+    case 'lost':
+      if (G.phaseT > 1.4) setPhase('idle');
+      break;
+    case 'idle': case 'ready':
+      updateCueBars();
+      break;
+  }
+  for (const r of G.ripples) r.t += dt;
+  G.ripples = G.ripples.filter(r => r.t < 1.6);
+  for (const p of G.drops) { p.t += dt; p.vy += 900 * dt; p.x += p.vx * dt; p.y += p.vy * dt; }
+  G.drops = G.drops.filter(p => p.t < p.life);
+  if (S.set.debug) renderDebug();
+}
+
+function addRipple(d, s){ G.ripples.push({d, s, t:0, x:G.lureX || 0}); }
+function splash(d, n){
+  const p = lurePos(d), sc = sAt(d);
+  for (let i = 0; i < n; i++) G.drops.push({x:p.x + rand(-6, 6) * sc, y:p.y, vx:rand(-120, 120) * sc, vy:rand(-420, -160) * sc, t:0, life:rand(.35, .7), r:rand(1.2, 2.8) * (0.4 + sc)});
+}
+
+/* =========================================================
+   그리기
+   ========================================================= */
+const cv = $('#scene'), ctx = cv.getContext('2d');
+let W = 0, H = 0, DPR = 1, HOR = 0, SHORE = 0;
+const D0 = 7;
+function resize(){
+  DPR = Math.min(2, window.devicePixelRatio || 1);
+  W = window.innerWidth; H = window.innerHeight;
+  cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR);
+  HOR = H * 0.30; SHORE = H * 0.80;
+  $('#rotate').hidden = !(W > H * 1.15 && 'ontouchstart' in window);
+}
+window.addEventListener('resize', resize);
+resize();
+
+const sAt = d => D0 / (d + D0);
+const yAt = d => HOR + (SHORE - HOR) * sAt(d);
+function lurePos(d){
+  const s = sAt(d);
+  const drift = Math.sin(G.time * 0.7) * 0.02 + (G.phase === 'fight' ? Math.sin(G.time * 2.3) * 0.06 : 0);
+  return {x:W * 0.5 + W * 0.16 * s + drift * W * s, y:yAt(d)};
+}
+
+// 고정 장식용 난수 (매 프레임 똑같이)
+function seeded(seed){ let s = seed >>> 0; return () => (s = (s * 1664525 + 1013904223) >>> 0) / 4294967296; }
+const WAVES = (() => { const r = seeded(42), a = []; for (let i = 0; i < 90; i++) a.push({d:Math.pow(r(), 1.8) * 80 + 0.5, x:r() * 2 - 1, len:0.5 + r(), ph:r() * TAU}); return a; })();
+const REEDS = (() => { const r = seeded(7), a = []; for (let i = 0; i < 26; i++) a.push({x:r(), h:0.5 + r() * 0.7, lean:(r() - 0.5) * 0.4, ph:r() * TAU}); return a; })();
+
+function hill(x, k){ return Math.sin(x * 0.006 + k) * 14 + Math.sin(x * 0.017 + k * 2.3) * 7 + Math.sin(x * 0.041 + k * 0.7) * 3; }
+
+function drawScene(){
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  const cam = G.shakeCam;
+  if (cam > 0.2) ctx.translate(rand(-cam, cam), rand(-cam, cam));
+
+  // 하늘
+  let g = ctx.createLinearGradient(0, 0, 0, HOR);
+  g.addColorStop(0, '#141b2c'); g.addColorStop(0.55, '#3b3f5e'); g.addColorStop(0.85, '#c98a7e'); g.addColorStop(1, '#f2b48c');
+  ctx.fillStyle = g; ctx.fillRect(-20, -20, W + 40, HOR + 21);
+  // 해
+  const sunX = W * 0.28, sunY = HOR + 2;
+  g = ctx.createRadialGradient(sunX, sunY, 4, sunX, sunY, H * 0.22);
+  g.addColorStop(0, 'rgba(255,224,170,.9)'); g.addColorStop(0.12, 'rgba(255,200,150,.45)'); g.addColorStop(1, 'rgba(255,190,150,0)');
+  ctx.fillStyle = g; ctx.fillRect(-20, 0, W + 40, HOR);
+  ctx.fillStyle = '#ffe6bd'; ctx.beginPath(); ctx.arc(sunX, sunY, Math.min(W, H) * 0.045, Math.PI, 0); ctx.fill();
+  // 먼 산
+  [['#3a3e5a', HOR - 26, 1.3], ['#2b3049', HOR - 10, 4.1]].forEach(([c, base, k]) => {
+    ctx.fillStyle = c; ctx.beginPath(); ctx.moveTo(-20, HOR + 1);
+    for (let x = -20; x <= W + 20; x += 8) ctx.lineTo(x, base - Math.abs(hill(x, k)));
+    ctx.lineTo(W + 20, HOR + 1); ctx.closePath(); ctx.fill();
+  });
+
+  // 물
+  g = ctx.createLinearGradient(0, HOR, 0, H);
+  g.addColorStop(0, '#9c7c7f'); g.addColorStop(0.05, '#5f6a7c'); g.addColorStop(0.35, '#2f4b5a'); g.addColorStop(1, '#16303b');
+  ctx.fillStyle = g; ctx.fillRect(-20, HOR, W + 40, H - HOR + 20);
+  // 물안개
+  g = ctx.createLinearGradient(0, HOR - 18, 0, HOR + 40);
+  g.addColorStop(0, 'rgba(255,225,205,0)'); g.addColorStop(0.45, 'rgba(255,225,205,.22)'); g.addColorStop(1, 'rgba(255,225,205,0)');
+  ctx.fillStyle = g; ctx.fillRect(-20, HOR - 18, W + 40, 58);
+  // 해 반사
+  for (let i = 0; i < 26; i++) {
+    const d = 60 - i * 2.2; if (d <= 1) break;
+    const y = yAt(d), s = sAt(d), w = (18 + Math.sin(G.time * 2 + i) * 8) * (0.3 + s * 3);
+    ctx.fillStyle = `rgba(255,214,170,${0.42 * (1 - i / 26)})`;
+    ctx.fillRect(sunX - w / 2 + Math.sin(G.time * 1.3 + i * 1.7) * 6 * s * 4, y, w, Math.max(1, 2.2 * s * 3));
+  }
+  // 잔물결
+  ctx.strokeStyle = 'rgba(220,235,240,.13)'; ctx.lineWidth = 1;
+  for (const w of WAVES) {
+    const y = yAt(w.d), s = sAt(w.d);
+    const x = W * 0.5 + w.x * W * 0.9 + Math.sin(G.time * 0.5 + w.ph) * 12 * s;
+    const len = w.len * 46 * s + 4;
+    ctx.globalAlpha = 0.5 + 0.5 * Math.sin(G.time * 1.1 + w.ph);
+    ctx.beginPath(); ctx.moveTo(x - len, y); ctx.lineTo(x + len, y); ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+
+  // 거리 눈금 (m)
+  ctx.font = '600 11px "IBM Plex Sans KR", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif';
+  ctx.textBaseline = 'middle';
+  const maxD = maxCast(S.up.rod);
+  for (let d = 10; d <= Math.min(90, maxD + 10); d += 10) {
+    const y = yAt(d); if (y < HOR + 12) break;
+    ctx.fillStyle = 'rgba(243,237,226,.38)'; ctx.fillText(d + 'm', 16, y);
+    ctx.fillRect(44, y, 10, 1);
+  }
+  // 최대 비거리 표시
+  const ym = yAt(maxD);
+  ctx.setLineDash([4, 6]); ctx.strokeStyle = 'rgba(242,193,78,.35)';
+  ctx.beginPath(); ctx.moveTo(60, ym); ctx.lineTo(W - 16, ym); ctx.stroke(); ctx.setLineDash([]);
+  ctx.fillStyle = 'rgba(242,193,78,.7)'; ctx.textAlign = 'right'; ctx.fillText('최대 ' + maxD + 'm', W - 16, ym - 9); ctx.textAlign = 'left';
+
+  // 갈대 (왼쪽 물가)
+  ctx.strokeStyle = '#1d2a2c'; ctx.lineCap = 'round';
+  for (const r of REEDS) {
+    const bx = r.x * W * 0.34 - 10, by = SHORE + 6, h = r.h * H * 0.16;
+    const sw = Math.sin(G.time * 1.2 + r.ph) * 6 + r.lean * 40;
+    ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(bx, by); ctx.quadraticCurveTo(bx + sw * 0.4, by - h * 0.6, bx + sw, by - h); ctx.stroke();
+  }
+
+  // 물결 원
+  for (const r of G.ripples) {
+    const p = lurePos(r.d), s = sAt(r.d), k = r.t / 1.6;
+    ctx.strokeStyle = `rgba(235,240,240,${0.55 * (1 - k)})`; ctx.lineWidth = 1.2;
+    ctx.beginPath(); ctx.ellipse(p.x, p.y + 2, (8 + k * 60 * r.s) * (s * 3 + 0.3), (2 + k * 14 * r.s) * (s * 3 + 0.3), 0, 0, TAU); ctx.stroke();
+  }
+
+  // 힘겨루기: 물고기 그림자
+  if (G.phase === 'fight' || G.phase === 'yank') {
+    const p = lurePos(G.lureD), s = sAt(G.lureD);
+    const ox = Math.sin(G.time * 3.1) * 26 * (s * 3 + 0.3);
+    ctx.fillStyle = 'rgba(8,16,20,.45)';
+    ctx.beginPath(); ctx.ellipse(p.x + ox, p.y + 6 * (s * 3 + .3), 26 * (s * 3 + .3), 7 * (s * 3 + .3), Math.sin(G.time * 3.1) * 0.3, 0, TAU); ctx.fill();
+  }
+
+  // 선착장
+  ctx.fillStyle = '#3d2c22';
+  ctx.beginPath(); ctx.moveTo(W * 0.22, SHORE + 12); ctx.lineTo(W * 1.02, SHORE + 4); ctx.lineTo(W * 1.1, H + 10); ctx.lineTo(W * 0.05, H + 10); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = 'rgba(0,0,0,.35)'; ctx.lineWidth = 1;
+  for (let i = 1; i < 7; i++) { const t = i / 7, y = lerp(SHORE + 8, H + 10, t * t); ctx.beginPath(); ctx.moveTo(lerp(W * .22, W * .05, t * t), y); ctx.lineTo(lerp(W * 1.02, W * 1.1, t * t), y); ctx.stroke(); }
+  ctx.fillStyle = '#5b4130'; ctx.fillRect(W * 0.22, SHORE + 8, W * 0.8, 4);
+
+  drawRodAndLine();
+
+  // 물방울
+  ctx.fillStyle = 'rgba(235,242,245,.85)';
+  for (const p of G.drops) { ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, TAU); ctx.fill(); }
+
+  // 낚아 올리는 물고기
+  if (G.phase === 'jump' && G.jump) {
+    const j = G.jump, k = clamp(j.t / 0.9, 0, 1);
+    const p0 = lurePos(G.lureD), p1 = {x:W * 0.5, y:H * 0.42};
+    const x = lerp(p0.x, p1.x, k), y = lerp(p0.y, p1.y, k) - Math.sin(Math.PI * k) * H * 0.12;
+    const L = lerp(30 * (sAt(G.lureD) * 3 + .3), Math.min(W * 0.55, 240), k);
+    drawFish(ctx, j.f, x, y, L, Math.sin(G.time * 18) * 0.25 * (1 - k * 0.6) - 0.3 * (1 - k), {time:G.time});
+  }
+}
+
+function rodTarget(){
+  switch (G.phase) {
+    case 'ready':  return [W * 0.99, H * 0.30, 0];
+    case 'flying': return [W * 0.60, H * 0.53, 0.05];
+    case 'reel':   return [W * 0.66, H * 0.50, 0.08];
+    case 'fight':  return [W * 0.62 + Math.sin(G.time * 3.1) * W * 0.03, H * 0.57, 0.32];
+    case 'yank':   return [W * 0.66, H * 0.48, 0.42];
+    case 'jump':   return [W * 0.80, H * 0.30, 0.12];
+    default:       return [W * 0.74, H * 0.46, 0.04];
+  }
+}
+
+function drawRodAndLine(){
+  const [tx, ty, bend] = rodTarget();
+  const k = G.phase === 'flying' ? 0.35 : 0.18;
+  G.tip.x = G.tip.x ? lerp(G.tip.x, tx, k) : tx; G.tip.y = G.tip.y ? lerp(G.tip.y, ty, k) : ty;
+  G.bend = lerp(G.bend, bend, 0.15);
+  const bx = W * 0.97, by = H * 1.04, tip = G.tip;
+
+  // 낚싯줄
+  let lp = null;
+  if (G.phase === 'flying') {
+    const u = clamp(G.phaseT / G.flight.dur, 0, 1), end = lurePos(G.castD);
+    lp = {x:lerp(tip.x, end.x, u), y:lerp(tip.y, end.y, u) - Math.sin(Math.PI * u) * H * 0.2};
+  } else if (['reel', 'fight', 'yank', 'jump', 'lost'].includes(G.phase)) {
+    lp = lurePos(G.lureD);
+    lp.y += Math.sin(G.time * 3) * 1.2;
+  }
+  if (lp) {
+    const taut = G.phase === 'fight' || G.phase === 'yank';
+    const mx = (tip.x + lp.x) / 2, my = (tip.y + lp.y) / 2 + (taut ? 0 : 22 + (G.time - G.lastTap < .2 ? -10 : 0));
+    ctx.strokeStyle = taut ? 'rgba(250,245,235,.9)' : 'rgba(240,235,225,.6)'; ctx.lineWidth = taut ? 1.3 : 1;
+    ctx.beginPath(); ctx.moveTo(tip.x, tip.y); ctx.quadraticCurveTo(mx, my, lp.x, lp.y); ctx.stroke();
+    if (G.phase !== 'jump') drawBobber(lp.x, lp.y, G.phase === 'flying' ? 0.35 : sAt(G.lureD));
+  }
+
+  // 낚싯대 (테이퍼)
+  const dx = tip.x - bx, dy = tip.y - by, len = Math.hypot(dx, dy);
+  const nx = -dy / len, ny = dx / len;
+  const cx = bx + dx * 0.55 + nx * len * G.bend * 0.35, cy = by + dy * 0.55 + ny * len * G.bend * 0.35;
+  const N = 24; let px = bx, py = by;
+  ctx.lineCap = 'round';
+  for (let i = 1; i <= N; i++) {
+    const t = i / N, it = 1 - t;
+    const x = it * it * bx + 2 * it * t * cx + t * t * tip.x, y = it * it * by + 2 * it * t * cy + t * t * tip.y;
+    ctx.strokeStyle = t < 0.3 ? '#2a2420' : '#1b1e24'; ctx.lineWidth = lerp(9, 2, t);
+    ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(x, y); ctx.stroke();
+    px = x; py = y;
+  }
+  // 하이라이트
+  ctx.strokeStyle = 'rgba(255,220,180,.25)'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(bx - 2, by); ctx.quadraticCurveTo(cx - 2, cy, tip.x - 1, tip.y); ctx.stroke();
+  // 릴
+  const rx = bx + dx * 0.12, ry = by + dy * 0.12;
+  ctx.fillStyle = '#9aa3a8'; ctx.beginPath(); ctx.arc(rx - 10, ry + 4, 11, 0, TAU); ctx.fill();
+  ctx.fillStyle = '#5e666b'; ctx.beginPath(); ctx.arc(rx - 10, ry + 4, 5, 0, TAU); ctx.fill();
+  const ang = G.time * 2 + G.tapCount * 0.9;
+  ctx.strokeStyle = '#d8dde0'; ctx.lineWidth = 2.5;
+  ctx.beginPath(); ctx.moveTo(rx - 10, ry + 4); ctx.lineTo(rx - 10 + Math.cos(ang) * 13, ry + 4 + Math.sin(ang) * 13); ctx.stroke();
+}
+
+function drawBobber(x, y, s){
+  const r = 4 + s * 11;
+  const sink = G.phase === 'fight' || G.phase === 'yank' ? r * 0.6 : 0;
+  y += sink;
+  ctx.save();
+  ctx.strokeStyle = 'rgba(20,20,20,.7)'; ctx.lineWidth = Math.max(1, r * 0.14);
+  ctx.beginPath(); ctx.moveTo(x, y - r); ctx.lineTo(x, y - r * 2.1); ctx.stroke();
+  ctx.fillStyle = '#f4f1ea'; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI); ctx.fill();
+  ctx.fillStyle = '#ee5a3c'; ctx.beginPath(); ctx.arc(x, y, r, Math.PI, TAU); ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,.4)'; ctx.beginPath(); ctx.arc(x - r * 0.35, y - r * 0.4, r * 0.22, 0, TAU); ctx.fill();
+  ctx.restore();
+}
+
+/* ---------- 물고기 그림 ---------- */
+function shade(hex, amt){
+  const n = parseInt(hex.slice(1), 16);
+  let r = n >> 16, g = (n >> 8) & 255, b = n & 255;
+  const f = v => clamp(Math.round(amt < 0 ? v * (1 + amt) : v + (255 - v) * amt), 0, 255);
+  return `rgb(${f(r)},${f(g)},${f(b)})`;
+}
+const patCache = {};
+function patPts(f){
+  if (patCache[f.id]) return patCache[f.id];
+  const r = seeded([...f.id].reduce((a, c) => a * 31 + c.charCodeAt(0), 7));
+  const pts = []; for (let i = 0; i < 46; i++) pts.push([r(), r(), r()]);
+  return patCache[f.id] = pts;
+}
+
+function drawFish(c, f, x, y, L, ang = 0, o = {}){
+  c.save(); c.translate(x, y); c.rotate(ang);
+  if (f.junk) { drawJunk(c, f, L, o); c.restore(); return; }
+  const h = L * f.depth * 0.5, nose = L * 0.5, tb = -L * 0.30, te = -L * 0.5;
+  const headR = {flat:0.5, big:0.72, pointed:0.95, round:0.85, barbel:0.8}[f.head] || 0.85;
+  const sil = o.sil, silC = o.silColor || 'rgba(10,16,22,.8)';
+  const finC = sil ? silC : f.fin;
+  // 꼬리
+  c.fillStyle = finC;
+  c.beginPath(); c.moveTo(tb + L * 0.03, 0); c.lineTo(te, -h * 1.0); c.quadraticCurveTo(te + L * 0.08, 0, te, h * 1.0); c.closePath(); c.fill();
+  // 등지느러미
+  c.beginPath();
+  if (f.longFin) { c.moveTo(L * 0.2, -h * 0.88); c.quadraticCurveTo(-L * 0.05, -h * 1.45, tb, -h * 0.42); c.lineTo(tb, -h * 0.2); c.closePath(); }
+  else { c.moveTo(L * 0.14, -h * 0.92); c.quadraticCurveTo(-L * 0.02, -h * 1.7, -L * 0.15, -h * 0.72); c.closePath(); }
+  c.fill();
+  // 배지느러미
+  c.beginPath(); c.moveTo(-L * 0.05, h * 0.86); c.quadraticCurveTo(-L * 0.14, h * 1.38, -L * 0.2, h * 0.58); c.closePath(); c.fill();
+  c.beginPath(); c.moveTo(L * 0.22, h * 0.8); c.quadraticCurveTo(L * 0.16, h * 1.25, L * 0.1, h * 0.85); c.closePath(); c.fill();
+  // 몸통
+  const body = new Path2D();
+  body.moveTo(nose, 0);
+  body.bezierCurveTo(nose, -h * headR, L * 0.12, -h * 1.08, tb, -h * 0.30);
+  body.lineTo(tb, h * 0.30);
+  body.bezierCurveTo(L * 0.12, h * 1.08, nose, h * headR, nose, 0);
+  if (sil) { c.fillStyle = silC; c.fill(body); c.restore(); return; }
+  const g = c.createLinearGradient(0, -h, 0, h);
+  g.addColorStop(0, shade(f.body, -0.3)); g.addColorStop(0.45, f.body); g.addColorStop(1, f.belly);
+  c.fillStyle = g; c.fill(body);
+  // 무늬
+  c.save(); c.clip(body);
+  const P = patPts(f);
+  c.fillStyle = f.pat; c.strokeStyle = f.pat;
+  if (f.pattern === 'bars') {
+    for (let i = 0; i < 6; i++) { const bx = lerp(L * 0.26, tb + L * 0.04, i / 5); c.fillRect(bx - L * 0.02, -h * 1.2, L * 0.04, h * 2.4); }
+  } else if (f.pattern === 'blotch') {
+    for (let i = 0; i < 7; i++) { const bx = lerp(L * 0.22, tb + L * 0.03, i / 6); c.beginPath(); c.ellipse(bx, -h * 0.05 + (P[i][0] - .5) * h * .2, L * 0.045, h * 0.24, 0, 0, TAU); c.fill(); }
+    if (f.longFin) for (let i = 0; i < 6; i++) { const bx = lerp(L * 0.2, tb, i / 5); c.beginPath(); c.ellipse(bx, -h * 0.55, L * 0.03, h * 0.16, 0, 0, TAU); c.fill(); }
+  } else if (f.pattern === 'spots') {
+    for (const p of P) { c.beginPath(); c.arc(lerp(-L * 0.3, L * 0.36, p[0]), lerp(-h * 0.95, h * 0.55, p[1]), L * 0.012 + p[2] * L * 0.022, 0, TAU); c.fill(); }
+  } else if (f.pattern === 'mottle') {
+    c.globalAlpha = 0.8;
+    for (const p of P.slice(0, 18)) { c.beginPath(); c.ellipse(lerp(-L * 0.3, L * 0.4, p[0]), lerp(-h, h * 0.3, p[1]), L * 0.05 * (0.5 + p[2]), h * 0.18 * (0.5 + p[2]), p[2] * 3, 0, TAU); c.fill(); }
+    c.globalAlpha = 1;
+  } else if (f.pattern === 'scales') {
+    c.lineWidth = Math.max(0.8, L * 0.008);
+    const st = Math.max(L * 0.055, 4);
+    for (let yy = -h * 0.8, row = 0; yy < h * 0.7; yy += h * 0.3, row++)
+      for (let xx = L * 0.3 - (row % 2) * st * 0.5; xx > tb; xx -= st) { c.beginPath(); c.arc(xx, yy, st * 0.55, Math.PI * 0.5, Math.PI * 1.5); c.stroke(); }
+  }
+  if (f.shine) {
+    const t = o.time || 0, sx = ((t * 0.5) % 1.6 - 0.3) * L * 1.2 - L * 0.5;
+    const sg = c.createLinearGradient(sx - L * 0.18, 0, sx + L * 0.18, 0);
+    sg.addColorStop(0, 'rgba(255,255,230,0)'); sg.addColorStop(0.5, 'rgba(255,255,230,.6)'); sg.addColorStop(1, 'rgba(255,255,230,0)');
+    c.fillStyle = sg; c.fillRect(-L, -h * 1.3, L * 2, h * 2.6);
+  }
+  // 몸통 위쪽 그늘
+  const sh = c.createLinearGradient(0, -h, 0, 0);
+  sh.addColorStop(0, 'rgba(0,0,0,.18)'); sh.addColorStop(1, 'rgba(0,0,0,0)');
+  c.fillStyle = sh; c.fillRect(-L, -h * 1.2, L * 2, h * 1.2);
+  c.restore();
+  // 아가미
+  c.strokeStyle = 'rgba(0,0,0,.28)'; c.lineWidth = Math.max(1, L * 0.012);
+  c.beginPath(); c.arc(L * 0.47, 0, h * 0.82, Math.PI - 0.8, Math.PI + 0.8); c.stroke();
+  // 눈
+  const ex = L * 0.37, ey = -h * 0.2, er = Math.max(1.4, L * 0.026);
+  c.fillStyle = '#f3eee0'; c.beginPath(); c.arc(ex, ey, er * 1.35, 0, TAU); c.fill();
+  c.fillStyle = '#14110e'; c.beginPath(); c.arc(ex + er * 0.15, ey, er * 0.85, 0, TAU); c.fill();
+  c.fillStyle = 'rgba(255,255,255,.8)'; c.beginPath(); c.arc(ex + er * 0.35, ey - er * 0.35, er * 0.25, 0, TAU); c.fill();
+  // 입
+  c.strokeStyle = 'rgba(0,0,0,.35)';
+  c.beginPath(); c.moveTo(nose - L * 0.005, h * 0.08); c.lineTo(nose - L * (f.head === 'big' ? 0.09 : 0.04), h * (f.head === 'big' ? 0.22 : 0.12)); c.stroke();
+  // 수염
+  if (f.head === 'flat' || f.head === 'barbel') {
+    c.strokeStyle = shade(f.body, -0.4); c.lineWidth = Math.max(1, L * 0.01); c.lineCap = 'round';
+    const n = f.head === 'flat' ? 2 : 1;
+    for (let i = 0; i < n; i++) {
+      c.beginPath(); c.moveTo(nose - L * 0.02, h * (0.1 + i * 0.08));
+      c.quadraticCurveTo(nose + L * 0.06, h * (0.35 + i * 0.25), nose + L * (f.head === 'flat' ? 0.1 : 0.03), h * (0.75 + i * 0.35)); c.stroke();
+    }
+  }
+  c.restore();
+}
+
+function drawJunk(c, f, L, o){
+  const sil = o.sil, silC = o.silColor || 'rgba(10,16,22,.8)';
+  if (f.junk === 'boot') {
+    const s = L / 100;
+    c.translate(-10 * s, 0);
+    const p = new Path2D();
+    p.moveTo(-18 * s, -38 * s); p.lineTo(10 * s, -38 * s); p.lineTo(12 * s, 6 * s);
+    p.quadraticCurveTo(40 * s, 8 * s, 44 * s, 22 * s); p.lineTo(44 * s, 30 * s); p.lineTo(-20 * s, 30 * s); p.closePath();
+    c.fillStyle = sil ? silC : '#3d5a46'; c.fill(p);
+    if (!sil) {
+      c.fillStyle = '#1f2421'; c.fillRect(-20 * s, 24 * s, 64 * s, 6 * s);
+      c.fillStyle = 'rgba(255,255,255,.12)'; c.fillRect(-14 * s, -34 * s, 5 * s, 50 * s);
+      c.fillStyle = '#2d4434'; c.fillRect(-19 * s, -38 * s, 30 * s, 6 * s);
+    }
+  } else {
+    const s = L / 60, w = 26 * s, hh = 40 * s;
+    c.rotate(0.35);
+    const g = c.createLinearGradient(-w / 2, 0, w / 2, 0);
+    g.addColorStop(0, '#7f878b'); g.addColorStop(0.4, '#d2d7da'); g.addColorStop(1, '#6d7478');
+    c.fillStyle = sil ? silC : g; c.fillRect(-w / 2, -hh / 2, w, hh);
+    if (!sil) {
+      c.fillStyle = '#b8402e'; c.fillRect(-w / 2, -hh * 0.18, w, hh * 0.36);
+      c.fillStyle = '#9ea5a9'; c.beginPath(); c.ellipse(0, -hh / 2, w / 2, w * 0.18, 0, 0, TAU); c.fill();
+    }
+  }
+}
+
+function fishCanvas(f, w, h, o = {}){
+  const el = document.createElement('canvas');
+  const d = Math.min(2, window.devicePixelRatio || 1);
+  el.width = w * d; el.height = h * d;
+  const c = el.getContext('2d'); c.scale(d, d);
+  const L = f.junk ? h * 1.1 : Math.min(w * 0.86, h / (f.depth * 0.8));
+  drawFish(c, f, w * 0.5 + L * 0.02, h * 0.52, L, 0, o);
+  return el;
+}
+
+/* =========================================================
+   UI
+   ========================================================= */
+let toastT = 0;
+function toast(msg){
+  const el = $('#toast'); el.textContent = msg; el.classList.add('on');
+  clearTimeout(toastT); toastT = setTimeout(() => el.classList.remove('on'), 2200);
+}
+
+function rankInfo(){
+  let i = 0; for (let k = 0; k < RANKS.length; k++) if (S.earned >= RANKS[k].at) i = k;
+  const cur = RANKS[i], nxt = RANKS[i + 1];
+  return {i, cur, nxt, pct:nxt ? (S.earned - cur.at) / (nxt.at - cur.at) : 1};
+}
+
+function renderChrome(){
+  const playing = G.phase !== 'title';
+  $('#hud').hidden = !playing;
+  const showTabs = playing && ['idle', 'result', 'lost'].includes(G.phase);
+  $('#tabs').hidden = !showTabs;
+  $('#cue').classList.toggle('notabs', !showTabs);
+  $('#money').textContent = won(S.money);
+  const r = rankInfo();
+  $('#rankName').textContent = r.cur.name;
+  $('#rankFill').style.width = (r.pct * 100).toFixed(1) + '%';
+  $('#rankNext').textContent = r.nxt ? `다음 등급까지 ${won(r.nxt.at - S.earned)}` : '최고 등급 달성!';
+  const cap = bucketCap(S.up.bucket), cnt = $('#bucketCnt');
+  cnt.textContent = `${S.bucket.length}/${cap}`; cnt.classList.toggle('full', S.bucket.length >= cap);
+  document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === tab));
+  if (!showTabs && tab !== 'fish') closeSheet();
+}
+
+const STEP_OF = {idle:1, ready:2, flying:2, reel:3, fight:4, yank:5};
+function stepsHtml(n){ let s = ''; for (let i = 1; i <= 5; i++) s += `<i class="${i < n ? 'done' : i === n ? 'on' : ''}"></i>`; return `<span class="steps">${s}</span>`; }
+
+function renderCue(){
+  const el = $('#cue'), ph = G.phase;
+  el.hidden = ph === 'title' || ph === 'result' || ph === 'jump' || tab !== 'fish';
+  if (el.hidden) return;
+  const P = swingP();
+  let h = '';
+  const eb = (label) => `<div class="eyebrow"><span>${label}</span>${stepsHtml(STEP_OF[ph] || 0)}</div>`;
+  if (ph === 'idle') {
+    if (bucketFull()) {
+      h = `${eb('물고기통 가득 참')}<div class="verb gold">팔러 가자</div><div class="sub">물고기통이 꽉 찼어. 팔면 다시 낚시할 수 있어</div><button class="cardbtn" id="goSell">물고기통 열기</button>`;
+    } else {
+      h = `${eb('1 · 준비')}<div class="verb">뒤로 젖혀</div><div class="sub">폰 윗부분을 어깨 뒤로 넘겨서 잠깐 멈춰. 진동이 오면 준비 끝</div>
+        <div class="bar" id="tiltBar"><div class="mark" style="left:${tiltPct(P.prep)}%"></div><div class="dot" id="tiltDot"></div></div>
+        <div class="barlbl"><span>앞으로 숙임</span><span>준비선</span><span>뒤로 젖힘</span></div>`;
+    }
+  } else if (ph === 'ready') {
+    h = `${eb('2 · 던지기')}<div class="verb hot">앞으로 휘둘러!</div><div class="sub">손목만 말고 팔 전체로. 세게 휘두를수록 멀리 날아가</div>
+      <div class="bar"><div class="mark" style="left:${tiltPct(P.prep)}%"></div><div class="dot" id="tiltDot"></div></div>`;
+  } else if (ph === 'flying') {
+    h = `${eb('2 · 던지기')}<div class="verb">날아가는 중</div><div class="sub">찌가 물에 닿으면 짧은 진동이 와</div>`;
+  } else if (ph === 'reel') {
+    h = `${eb('3 · 감기')}<div class="verb">탭! 탭! 탭!</div><div class="sub">화면 아무 데나 연타해서 줄을 감아. 톡톡 진동이 오면 물고기가 건드린 거야</div>
+      <div class="bar"><div class="fill" id="reelFill" style="background:var(--water)"></div></div>
+      <div class="barlbl"><span id="reelLbl">남은 줄 ${G.lureD.toFixed(1)}m</span><span>탭 ${G.tapCount}번</span></div>`;
+  } else if (ph === 'fight') {
+    const f = G.plan.fish;
+    h = `${eb('4 · 힘겨루기')}<div class="verb hot">좌우로 흔들어!</div><div class="sub">물었다! 게이지가 끝까지 차면 엄청 큰 진동이 와. ${f.str >= 2.5 ? '<b style="color:var(--gold)">대물 느낌!</b>' : ''}</div>
+      <div class="bar"><div class="fill" id="fightFill"></div></div>
+      <div class="barlbl"><span id="fightLbl"></span><span id="fightT"></span></div>`;
+  } else if (ph === 'yank') {
+    h = `${eb('5 · 끌어올리기')}<div class="verb hot">뒤로 제쳐!!</div><div class="sub">지금이야! 폰을 확 뒤로 젖혀서 끌어올려</div>
+      <div class="bar"><div class="fill" id="yankFill" style="background:var(--gold)"></div></div>`;
+  } else if (ph === 'lost') {
+    h = `<div class="eyebrow"><span>아쉽다</span></div><div class="verb">놓쳤다</div><div class="sub">${esc(G.lostMsg)}</div>`;
+  }
+  el.innerHTML = `<div class="card">${h}</div>`;
+  const gs = $('#goSell'); if (gs) gs.onclick = () => openTab('bucket');
+  updateCueBars();
+}
+function tiltPct(t){ return clamp((t + 60) / 150 * 100, 0, 100); }
+
+function updateCueBars(){
+  const ph = G.phase;
+  if (ph === 'idle' || ph === 'ready') {
+    const d = $('#tiltDot'); if (d) d.style.left = tiltPct(S.set.sim ? (ph === 'ready' ? swingP().prep + 15 : -20) : SN.tilt) + '%';
+  } else if (ph === 'reel') {
+    const f = $('#reelFill'); if (f) f.style.width = (G.lureD / G.castD * 100).toFixed(1) + '%';
+    const l = $('#reelLbl'); if (l) l.textContent = `남은 줄 ${G.lureD.toFixed(1)}m`;
+    const t = l && l.nextElementSibling; if (t) t.textContent = `탭 ${G.tapCount}번`;
+  } else if (ph === 'fight') {
+    const fi = G.fight, f = $('#fightFill');
+    if (f) { f.style.width = clamp(fi.gauge, 0, 100).toFixed(1) + '%'; f.style.background = fi.gauge < 20 ? 'var(--bad)' : fi.gauge > 75 ? 'var(--gold)' : 'var(--bobber)'; }
+    const l = $('#fightLbl'); if (l) l.textContent = fi.gauge < 20 ? '도망가려 해!' : fi.gauge > 75 ? '거의 다 왔어!' : '버티는 중';
+    const t = $('#fightT'); if (t) t.textContent = `${Math.max(0, FIGHT_LIMIT - fi.t).toFixed(1)}초`;
+  } else if (ph === 'yank') {
+    const f = $('#yankFill'); if (f) f.style.width = (100 - G.phaseT / YANK_WINDOW * 100).toFixed(1) + '%';
+  }
+}
+
+/* ---------- 버튼 모드 (센서 없는 PC, 또는 테스트용) ---------- */
+function renderSim(){
+  const el = $('#sim');
+  el.hidden = !S.set.sim || G.phase === 'title' || G.phase === 'result' || tab !== 'fish';
+  if (el.hidden) return;
+  const B = {
+    idle:  [['armed', '뒤로 젖히기 (B)']],
+    ready: [['swing', '앞으로 휘두르기 (F)'], ['weak', '살살 휘두르기']],
+    reel:  [['tap', '감기 (스페이스)']],
+    fight: [['shake', '좌우 흔들기 (A·D 연타)']],
+    yank:  [['yank', '뒤로 제치기 (Y)']],
+  }[G.phase] || [];
+  el.innerHTML = `<div class="lbl">버튼 모드 · 센서 대신 눌러서 테스트</div>` + B.map(([e, t]) => `<button data-e="${e}">${t}</button>`).join('');
+  el.querySelectorAll('button').forEach(b => b.onpointerdown = ev => { ev.preventDefault(); simEmit(b.dataset.e); });
+}
+function simEmit(e){
+  if (e === 'swing') emit('swing', rand(0.55, 1));
+  else if (e === 'shake') emit('shake', 1.3);
+  else emit(e);
+}
+
+function renderDebug(){
+  const el = $('#debug'), sw = SN.sw;
+  el.textContent = SN.ok
+    ? `기울기 ${SN.tilt.toFixed(0).padStart(4)}°  원시 ${SN.tiltRaw.toFixed(0).padStart(4)}°  회전 ${SN.rot.toFixed(0).padStart(4)}°/s\n좌우가속 ${SN.linX.toFixed(1).padStart(5)}  흔들기 ${SN.shCount}회  센서 ${SN.hz}Hz\n던지기상태 ${sw.st}${sw.needLow ? ' (앞으로 숙이면 시작)' : ''}  단계 ${G.phase}`
+    : `센서 신호 없음 · 단계 ${G.phase}`;
+}
+
+/* ---------- 탭 & 시트 ---------- */
+function openTab(t){
+  tab = t;
+  if (t === 'fish') closeSheet(); else openSheet(t);
+  renderChrome(); renderCue(); renderSim();
+}
+function closeSheet(){ $('#sheet').hidden = true; tab = 'fish'; document.body.classList.remove('sheet-open'); }
+function openSheet(kind){
+  $('#sheet').hidden = false; document.body.classList.add('sheet-open');
+  const c = $('#sheetCard');
+  if (kind === 'bucket') renderBucket(c);
+  else if (kind === 'shop') renderShop(c);
+  else if (kind === 'dex') renderDex(c);
+  else if (kind === 'settings') renderSettings(c);
+}
+const closeX = `<button class="iconbtn" data-close aria-label="닫기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>`;
+function wireClose(c){ c.querySelectorAll('[data-close]').forEach(b => b.onclick = () => openTab('fish')); }
+
+function renderBucket(c){
+  const cap = bucketCap(S.up.bucket), total = S.bucket.reduce((a, x) => a + x.price, 0);
+  c.innerHTML = `<div class="sheethead"><h2>물고기통</h2><span>${S.bucket.length}/${cap}마리</span></div>
+    <div class="scroll" id="bucketList">${S.bucket.length ? '' : '<div class="empty">아직 담은 게 없어.<br>저수지로 가서 한 마리 낚아보자</div>'}</div>
+    <div class="sheetfoot"><button class="bigbtn" id="sellAll" ${S.bucket.length ? '' : 'disabled'}>전부 팔기 · ${won(total)}</button></div>`;
+  const list = c.querySelector('#bucketList');
+  S.bucket.forEach(it => {
+    const f = FISH_BY_ID[it.id], t = tierOf(f);
+    const row = document.createElement('div'); row.className = 'row';
+    row.appendChild(fishCanvas(f, 64, 40, {time:0}));
+    const mid = document.createElement('div');
+    mid.innerHTML = `<div class="nm">${esc(f.name)}<span class="tier" style="color:${t.color}">${t.name}</span></div><div class="meta">${it.size.toFixed(1)}cm</div>`;
+    row.appendChild(mid);
+    const pr = document.createElement('div'); pr.className = 'pr'; pr.textContent = won(it.price); row.appendChild(pr);
+    list.appendChild(row);
+  });
+  c.querySelector('#sellAll').onclick = () => {
+    if (!S.bucket.length) return;
+    const before = rankInfo().i;
+    S.money += total; S.earned += total; S.bucket = []; persist();
+    vib(VIB.coin); sfx.coin();
+    const after = rankInfo();
+    toast(after.i > before ? `등급 상승! ${after.cur.name}` : `${won(total)} 벌었어!`);
+    if (after.i === RANKS.length - 1 && after.i > before) setTimeout(() => toast('목표 달성! 전설의 강태공이 됐어'), 2300);
+    renderChrome(); renderBucket(c); renderCue();
+  };
+}
+
+function renderShop(c){
+  c.innerHTML = `<div class="sheethead"><h2>낚시 상점</h2><span>보유 ${won(S.money)}</span></div><div class="scroll" id="shopList"></div>`;
+  const list = c.querySelector('#shopList');
+  UPG.forEach(u => {
+    const l = S.up[u.id], maxed = l >= u.costs.length, cost = u.costs[l];
+    const row = document.createElement('div'); row.className = 'upg';
+    let dots = ''; for (let i = 0; i < u.costs.length; i++) dots += `<i class="${i < l ? 'on' : ''}"></i>`;
+    row.innerHTML = `<div class="nm">${u.name}<span class="lv">${dots}</span></div>
+      <div class="ds">${u.desc}</div>
+      <div class="fx">${maxed ? `${u.fx(l)} · 최고 레벨` : `${u.fx(l)} → <b>${u.fx(l + 1)}</b>`}</div>
+      <button ${maxed || S.money < cost ? 'disabled' : ''}>${maxed ? '완료' : won(cost)}</button>`;
+    row.querySelector('button').onclick = () => {
+      if (maxed || S.money < cost) return;
+      S.money -= cost; S.up[u.id]++; persist();
+      vib(VIB.coin); sfx.coin(); toast(`${u.name} 강화! ${u.fx(S.up[u.id])}`);
+      renderChrome(); renderShop(c);
+    };
+    list.appendChild(row);
+  });
+}
+
+function renderDex(c){
+  const found = REAL_FISH.filter(f => S.dex[f.id]).length;
+  c.innerHTML = `<div class="sheethead"><h2>도감</h2><span>${found}/${REAL_FISH.length}종 발견</span></div><div class="scroll"><div class="dex" id="dexGrid"></div></div>`;
+  const grid = c.querySelector('#dexGrid');
+  FISH.forEach(f => {
+    const rec = S.dex[f.id], t = tierOf(f);
+    const card = document.createElement('div'); card.className = 'dexc';
+    card.appendChild(fishCanvas(f, 112, 70, rec ? {time:0} : {sil:true, silColor:'rgba(243,237,226,.12)'}));
+    const info = document.createElement('div');
+    info.innerHTML = rec
+      ? `<div class="nm">${esc(f.name)}</div><div class="meta" style="color:${t.color}">${t.name}</div><div class="meta">최대 ${rec.best.toFixed(1)}cm · ${rec.n}마리</div>`
+      : `<div class="nm">???</div><div class="meta" style="color:${t.color}">${t.name}</div><div class="meta">${f.junk ? '어딘가에…' : `${zoneName(f.d[0])}부터`}</div>`;
+    card.appendChild(info);
+    grid.appendChild(card);
+  });
+}
+
+let resetArmed = false;
+function renderSettings(c){
+  const seg = (key, arr) => `<div class="seg" data-k="${key}">${arr.map((p, i) => `<button data-v="${i}" class="${S.set[key] === i ? 'on' : ''}">${p.name}</button>`).join('')}</div>`;
+  const tog = (key, name, sub) => `<div class="tog"><div>${name}<small>${sub}</small></div><button class="switch ${S.set[key] ? 'on' : ''}" data-t="${key}" aria-label="${name}" aria-pressed="${S.set[key]}"></button></div>`;
+  c.innerHTML = `<div class="sheethead"><h2>설정</h2>${closeX}</div>
+    <div class="scroll"><div class="set">
+      <div><label class="t">던지기·제치기 감도</label>${seg('swing', SWING_P)}</div>
+      <div><label class="t">흔들기 감도</label>${seg('shake', SHAKE_P)}</div>
+      ${tog('vib', '진동', navigator.vibrate ? '이 기기는 진동을 지원해' : '이 브라우저는 진동을 지원하지 않아')}
+      ${tog('sound', '효과음', '물소리, 릴 소리, 동전 소리')}
+      ${tog('sim', '버튼 모드', '센서 대신 화면 버튼으로 테스트')}
+      ${tog('debug', '센서값 보기', '기울기·회전·흔들기 수치를 화면에 표시')}
+      <div><label class="t">진동 미리 느껴보기</label><div class="vibrow">
+        <button class="ghost" data-vib="ready">준비</button><button class="ghost" data-vib="bite">물었다</button><button class="ghost" data-vib="yank">끌어올려</button></div></div>
+      <button class="ghost danger" id="resetBtn">${resetArmed ? '한 번 더 누르면 처음부터 시작해' : '진행 초기화'}</button>
+    </div></div>`;
+  wireClose(c);
+  c.querySelectorAll('.seg').forEach(s => s.querySelectorAll('button').forEach(b => b.onclick = () => { S.set[s.dataset.k] = +b.dataset.v; persist(); renderSettings(c); renderCue(); }));
+  c.querySelectorAll('[data-t]').forEach(b => b.onclick = () => {
+    const k = b.dataset.t; S.set[k] = !S.set[k]; persist();
+    if (k === 'debug') $('#debug').hidden = !S.set.debug;
+    if (k === 'sim') { S.set.simAuto = false; persist(); resetSwing(); }
+    renderSettings(c); renderSim(); renderCue();
+  });
+  c.querySelectorAll('[data-vib]').forEach(b => b.onclick = () => { audioInit(); vib(VIB[b.dataset.vib]); });
+  c.querySelector('#resetBtn').onclick = () => {
+    if (!resetArmed) { resetArmed = true; renderSettings(c); setTimeout(() => { resetArmed = false; if (!$('#sheet').hidden) renderSettings(c); }, 3000); return; }
+    resetArmed = false; const keep = S.set; S = fresh(); S.set = keep; persist();
+    toast('처음부터 다시 시작!'); renderChrome(); openTab('fish');
+  };
+}
+
+/* ---------- 잡은 물고기 결과 ---------- */
+function openCatchModal(){
+  const j = G.jump, f = j.f, t = tierOf(f);
+  const m = $('#modal'), c = $('#modalCard');
+  const full = bucketFull();
+  c.innerHTML = `<div class="eyebrow" style="justify-content:center;color:${t.color}">${f.junk ? '음…' : '낚았다!'}</div>
+    <div id="mFish"></div>
+    <div class="nm">${esc(f.name)}<span class="tier" style="color:${t.color};font-family:var(--f-body)">${t.name}</span></div>
+    <div class="badges">${j.isNew && !f.junk ? '<span class="badge">새로 발견!</span>' : ''}${j.isBest ? '<span class="badge g">최대어 갱신!</span>' : ''}</div>
+    <div class="stats"><div><b>${j.size.toFixed(1)}cm</b>크기</div><div class="gp"><b>${won(j.price)}</b>판매가</div><div><b>${G.castD.toFixed(0)}m</b>거리</div></div>
+    <div class="desc">${esc(f.desc)}</div>
+    <div class="mbtns"><button class="rel" id="mRel">${f.junk ? '버리기' : '놓아주기'}</button><button class="keep" id="mKeep" ${full ? 'disabled style="opacity:.5"' : ''}>${full ? '통이 가득 참' : '물고기통에 넣기'}</button></div>`;
+  const holder = c.querySelector('#mFish');
+  const fc = fishCanvas(f, 320, 160, {time:G.time}); holder.appendChild(fc);
+  m.hidden = false;
+  // 황금잉어는 반짝이도록 다시 그림
+  if (f.shine) { const loop = () => { if (m.hidden) return; const n = fishCanvas(f, 320, 160, {time:performance.now() / 1000}); holder.replaceChildren(n); requestAnimationFrame(loop); }; requestAnimationFrame(loop); }
+  const done = keep => {
+    if (keep && !bucketFull()) { S.bucket.push({id:f.id, size:j.size, price:j.price}); persist(); toast(`${f.name} 담았어 · ${won(j.price)}`); }
+    m.hidden = true; G.jump = null; setPhase('idle');
+  };
+  c.querySelector('#mRel').onclick = () => done(false);
+  c.querySelector('#mKeep').onclick = () => done(true);
+}
+
+/* ---------- 입력 ---------- */
+window.addEventListener('pointerdown', e => {
+  if (G.phase !== 'reel') return;
+  if (e.target.closest('button, #sheet, #modal, #hud, #tabs')) return;
+  emit('tap');
+}, {passive:true});
+window.addEventListener('keydown', e => {
+  if (G.phase === 'title') return;
+  const k = e.key.toLowerCase();
+  if (k === ' ' || k === 'enter') { if (G.phase === 'reel') { e.preventDefault(); emit('tap'); } }
+  else if (k === 'b') emit('armed');
+  else if (k === 'f') emit('swing', rand(0.55, 1));
+  else if (k === 'a' || k === 'd' || k === 'arrowleft' || k === 'arrowright') { if (!e.repeat) emit('shake', 1.3); }
+  else if (k === 'y') emit('yank');
+});
+document.querySelectorAll('#tabs button').forEach(b => b.onclick = () => openTab(b.dataset.tab === tab && tab !== 'fish' ? 'fish' : b.dataset.tab));
+$('#gear').onclick = () => { if (['idle', 'result', 'lost'].includes(G.phase) || G.phase === 'title') { tab = 'settings'; openSheet('settings'); renderChrome(); renderCue(); renderSim(); } else toast('낚시 중엔 설정을 열 수 없어'); };
+
+/* ---------- 화면 꺼짐 방지 ---------- */
+let wake = null;
+async function keepAwake(){ try { if ('wakeLock' in navigator) wake = await navigator.wakeLock.request('screen'); } catch (e) {} }
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && G.phase !== 'title') keepAwake(); });
+
+/* ---------- 시작 ---------- */
+if (!window.isSecureContext) {
+  const w = $('#secureWarn'); w.classList.add('bad');
+  w.textContent = '지금 주소는 https가 아니라서 폰 센서가 꺼져 있어. https 주소로 열어줘 (버튼 모드로는 해볼 수 있어)';
+}
+window.addEventListener('devicemotion', onMotion);
+
+$('#startBtn').onclick = async () => {
+  audioInit();
+  try { const p = document.documentElement.requestFullscreen && document.documentElement.requestFullscreen({navigationUI:'hide'}); if (p) p.then(() => screen.orientation && screen.orientation.lock && screen.orientation.lock('portrait').catch(() => {})).catch(() => {}); } catch (e) {}
+  if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
+    try { await DeviceMotionEvent.requestPermission(); } catch (e) {}
+  }
+  keepAwake();
+  vib(80);
+  $('#title').hidden = true;
+  $('#calib').hidden = false;
+  const t0 = performance.now(), n0 = SN.n;
+  const samples = [];
+  await new Promise(res => {
+    const step = () => {
+      const k = (performance.now() - t0) / 1300;
+      $('#calibFill').style.width = clamp(k * 100, 0, 100) + '%';
+      if (SN.ok) samples.push([SN.gx, SN.gy, SN.gz]);
+      if (k >= 1) res(); else requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  });
+  $('#calib').hidden = true;
+  if (!SN.ok || SN.n - n0 < 5) {
+    if (!S.set.sim) { S.set.sim = true; S.set.simAuto = true; persist(); }
+    toast('센서를 못 찾았어. 버튼 모드로 시작할게');
+  } else {
+    const gy = samples.reduce((a, s) => a + s[1], 0) / Math.max(1, samples.length);
+    if (gy < -4) { SN.invert = -1; SN.gx *= -1; SN.gy *= -1; SN.gz *= -1; }
+    if (S.set.simAuto) { S.set.sim = false; S.set.simAuto = false; persist(); }
+  }
+  $('#debug').hidden = !S.set.debug;
+  setPhase('idle');
+};
+
+/* ---------- 루프 ---------- */
+let lastT = performance.now();
+function frame(now){
+  const dt = Math.min(0.05, (now - lastT) / 1000); lastT = now;
+  update(dt);
+  drawScene();
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+// 테스트용 훅
+window.__sonmat = {G, S, SN, emit, handle, onMotion, setPhase, FISH, cast, bite, landFish};
+</script>
+</body>
+</html>
