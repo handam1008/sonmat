@@ -62,6 +62,7 @@ canvas#scene{position:fixed;inset:0;width:100%;height:100%;display:block}
   transition:opacity .2s, transform .2s;pointer-events:none;text-wrap:balance}
 #toast.on{opacity:1;transform:translate(-50%,0)}
 body.sheet-open #toast{top:auto;bottom:calc(156px + var(--safe-b))}
+body.reeling #toast{top:calc(var(--safe-t) + 268px)}
 
 /* cue card: taps pass through to the game except on its buttons */
 #cue{position:fixed;left:0;right:0;bottom:calc(64px + var(--safe-b));z-index:4;padding:0 var(--gut-r) 10px var(--gut-l);pointer-events:none}
@@ -231,6 +232,16 @@ body.sheet-open #toast{top:auto;bottom:calc(156px + var(--safe-b))}
 #rotate{position:fixed;inset:0;z-index:40;background:var(--night);display:grid;place-items:center;text-align:center;padding:24px}
 #rotate .verb{font-size:30px}
 
+.chip{margin-top:10px;padding:7px 12px;border-radius:999px;border:1px solid var(--line);background:rgba(243,237,226,.06);font-size:12px;color:var(--gold);font-weight:600}
+#cue.top{top:calc(var(--safe-t) + 96px);bottom:auto}
+.seg.seg2{grid-template-columns:1fr 1fr}
+#reel{position:fixed;z-index:6;left:50%;bottom:calc(var(--safe-b) + 28px);width:min(64vw,250px);aspect-ratio:1;transform:translateX(-50%);border-radius:50%;
+  touch-action:none;background:radial-gradient(circle at 50% 45%, #3a4556 0%, #222b38 60%, #161d27 100%);box-shadow:0 10px 30px rgba(0,0,0,.45), inset 0 2px 0 rgba(255,255,255,.08)}
+#reel .reelring{position:absolute;inset:7%;border-radius:50%;border:3px dashed rgba(243,237,226,.35);transition:border-color .2s}
+#reel .reelknob{position:absolute;inset:0;pointer-events:none}
+#reel .reelknob span{position:absolute;left:50%;top:6%;width:22%;height:22%;margin-left:-11%;border-radius:50%;background:var(--gold);box-shadow:0 3px 8px rgba(0,0,0,.4), inset 0 -3px 0 rgba(0,0,0,.2)}
+#reel .reelhub{position:absolute;left:50%;top:50%;width:22%;height:22%;margin:-11% 0 0 -11%;border-radius:50%;background:#9aa3a8;box-shadow:inset 0 -3px 0 rgba(0,0,0,.25)}
+#reel .reellbl{position:absolute;left:0;right:0;bottom:-24px;text-align:center;font-size:12px;color:var(--muted)}
 @media (prefers-reduced-motion: reduce){
   #toast,.rank .fill,.switch::after{transition:none}
   #modal .card{animation:none}
@@ -252,6 +263,12 @@ body.sheet-open #toast{top:auto;bottom:calc(156px + var(--safe-b))}
 <div id="sim" hidden></div>
 <div id="debug" hidden></div>
 <section id="cue" hidden></section>
+<div id="reel" hidden aria-label="릴: 손가락으로 시계 방향으로 돌려">
+  <div class="reelring" id="reelRing"></div>
+  <div class="reelknob" id="reelKnob"><span></span></div>
+  <div class="reelhub"></div>
+  <div class="reellbl">시계 방향으로 돌려</div>
+</div>
 
 <nav id="tabs" hidden>
   <button data-tab="fish" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M5 3v14a4 4 0 0 0 8 0v-2"/><path d="M5 3l12 6"/><circle cx="17" cy="11.5" r="1.6"/></svg>낚시</button>
@@ -282,11 +299,10 @@ body.sheet-open #toast{top:auto;bottom:calc(156px + var(--safe-b))}
   <div class="logo">손<em>맛</em></div>
   <div class="tag">저수지 낚시 프로토타입 · 폰이 곧 낚싯대</div>
   <ol>
-    <li><div><b>던지기</b> <span>화면을 누른 채 뒤로 젖히고, 앞으로 휘두르면서 손가락을 떼</span></div></li>
-    <li><div><b>기다리기</b> <span>톡톡 오는 건 참아. 살짝 까딱이면 물고기가 꼬여</span></div></li>
-    <li><div><b>챔질</b> <span>"쿵" 묵직한 진동이 오면 바로 위로 채</span></div></li>
-    <li><div><b>파이팅</b> <span>달아나면 버티고, 멈추면 들어 올려 감고, 덜덜 떨면 흔들지 마</span></div></li>
-    <li><div><b>끌어올리기</b> <span>마지막 발악을 버티고, 엄청 큰 진동에 뒤로 확 제쳐</span></div></li>
+    <li><div><b>던지기</b> <span>화면을 누른 채 뒤로 젖혀 조준하고, 앞으로 휘두르면서 엄지를 떼</span></div></li>
+    <li><div><b>기다리기</b> <span>톡톡은 물고기가 건드리는 거야. 살짝 까딱이면 꼬여</span></div></li>
+    <li><div><b>낚아채기</b> <span>크게 "쿵" 오면 폰을 위로 확 들어</span></div></li>
+    <li><div><b>파이팅</b> <span>A: 폰을 흔들어서 · B: 화면 릴을 돌려서 끌어와 (설정에서 바꾸기)</span></div></li>
   </ol>
   <p class="warn" id="secureWarn">폰을 꽉 잡고 주변에 사람이나 물건이 없는 곳에서 해줘. 이어폰을 끼면 물소리랑 드랙 소리가 살아나.</p>
   <button class="bigbtn" id="startBtn">낚시 시작</button>
@@ -372,9 +388,11 @@ const SWING_P = [
   {name:'어려움', prep:30, rot:320, strike:22, pump:17, yank:40},
 ];
 // still: 이보다 덜 흔들리면 '버틴다'로 인정 (°/s)
-const STEADY_P = [ {name:'쉬움', still:95}, {name:'보통', still:65}, {name:'어려움', still:42} ];
+// A 방식 흔들기 감도: lin=좌우 가속(m/s²), rot=회전(°/s)
+const SHAKE_P = [ {name:'쉬움', lin:4.5, rot:130}, {name:'보통', lin:7, rot:190}, {name:'어려움', lin:10, rot:260} ];
+const FIGHT_MODES = [ {id:'shake', name:'A · 폰 흔들기'}, {id:'reel', name:'B · 릴 감기'} ];
 const IDEAL_REL = 5;          // 줄을 놓기 가장 좋은 기울기(°) — 폰이 거의 세워진 순간
-const BITE_WINDOW = 0.95;     // 본신 후 챔질 가능 시간(s)
+const BITE_WINDOW = 1.3;      // 큰 진동 후 낚아챌 수 있는 시간(s)
 const YANK_WINDOW = 2.4;
 const GRADES = [{g:'S', mult:1.3}, {g:'A', mult:1.15}, {g:'B', mult:1.0}, {g:'C', mult:0.9}];
 
@@ -388,15 +406,15 @@ const VIB = {
 /* ---------------- 저장 ---------------- */
 const SAVE_KEY = 'sonmat-v1';
 const fresh = () => ({money:0, earned:0, up:{rod:0,reel:0,line:0,bait:0,bucket:0}, dex:{}, bucket:[],
-  set:{swing:1, steady:1, vib:true, sound:true, sim:false, debug:false}});
+  set:{swing:1, shake:1, fightMode:'reel', vib:true, sound:true, sim:false, debug:false}});
 let S = fresh();
 try {
   const raw = localStorage.getItem(SAVE_KEY);
-  if (raw) { const o = JSON.parse(raw); S = Object.assign(fresh(), o); S.up = Object.assign(fresh().up, o.up); S.set = Object.assign(fresh().set, o.set); if (S.set.steady == null) S.set.steady = 1; }
+  if (raw) { const o = JSON.parse(raw); S = Object.assign(fresh(), o); S.up = Object.assign(fresh().up, o.up); S.set = Object.assign(fresh().set, o.set); if (S.set.shake == null) S.set.shake = 1; if (!S.set.fightMode) S.set.fightMode = 'reel'; }
 } catch (e) {}
 function persist(){ try { localStorage.setItem(SAVE_KEY, JSON.stringify(S)); } catch (e) {} }
 const swingP = () => SWING_P[S.set.swing] || SWING_P[1];
-const stillThr = () => (STEADY_P[S.set.steady] || STEADY_P[1]).still;
+const shakeP = () => SHAKE_P[S.set.shake] || SHAKE_P[1];
 
 /* =========================================================
    진동 — 한 번 울리기(vib) + 계속 울리기(vibLevel). 화면 테두리에도 그대로 보여줌
@@ -545,7 +563,7 @@ function onMotion(e){
   const rr = e.rotationRate;
   if (rr && rr.beta != null) {
     SN.hasGyro = true;
-    SN.beta = rr.beta || 0;
+    SN.beta = rr.beta || 0; SN.alpha = rr.alpha || 0; SN.gamma = rr.gamma || 0;
     SN.rot = Math.hypot(rr.alpha || 0, rr.beta || 0, rr.gamma || 0);
     // 자이로 방향 추정: 천천히 움직일 때 기울기 변화와 같은 쪽인지 확인
     if (SN.rot < 120 && Math.abs(SN.tiltRate) > 8) { SN.gsCorr = clamp(SN.gsCorr + Math.sign(SN.beta * SN.tiltRate), -30, 30); SN.gs = SN.gsCorr >= 0 ? 1 : -1; }
@@ -560,8 +578,23 @@ function onMotion(e){
   const la = e.acceleration;
   const lx = (la && la.x != null) ? la.x * inv : (ax - SN.gx);
   SN.linX += (lx - SN.linX) * 0.6;
+  detectShake(now);
   SN.hist.push(now, SN.gyro);
   while (SN.hist.length > 2 && now - SN.hist[0] > 1200) SN.hist.splice(0, 2);
+}
+// A 방식: 좌우로 흔든 횟수 감지 (방향이 바뀔 때마다 한 번)
+const SH = {ch:[{sign:0, peak:0}, {sign:0, peak:0}, {sign:0, peak:0}], last:0};
+function detectShake(now){
+  if (S.set.sim || G.phase !== 'fight' || S.set.fightMode !== 'shake') return;
+  const P = shakeP(), vals = [SN.linX, SN.alpha || 0, SN.gamma || 0], thr = [P.lin, P.rot, P.rot];
+  for (let i = 0; i < 3; i++) {
+    const c = SH.ch[i], v = vals[i], sg = Math.sign(v);
+    if (Math.abs(v) > Math.abs(c.peak)) c.peak = v;
+    if (sg !== 0 && sg !== c.sign && Math.abs(v) > thr[i] * 0.25) {
+      if (Math.abs(c.peak) >= thr[i] && now - SH.last > 110) { SH.last = now; shakeReel(clamp(Math.abs(c.peak) / thr[i], 1, 2)); }
+      c.sign = sg; c.peak = v;
+    }
+  }
 }
 // 최근 ms 동안 '위로(내 쪽으로)' 들어 올린 각도
 function angleRise(ms){
@@ -581,7 +614,7 @@ const G = {
   nib:null, strikeJ:null, fight:null, surf:null, net:null, catchInfo:null, res:null,
   tip:{x:0, y:0}, bend:0, ripples:[], drops:[], shakeCam:0, lastTap:0, tapCount:0, floatW:0, floatSink:0,
   sim:{strike:false, lift:false, pull:0, shake:0, roll:0, rollT:0, yank:false},
-  lostMsg:'', hintedRunTap:false,
+  lostMsg:'', castHit:null, reelAcc:0, reelNotch:0,
 };
 let tab = 'fish';
 
@@ -603,7 +636,7 @@ function makePoints(){
 /* ---------- 1. 던지기 ---------- */
 function arm(){
   if (bucketFull()) { toast('물고기통이 가득 찼어. 먼저 팔고 오자'); vib([60, 60, 60]); G.castDet.needLow = true; return; }
-  G.cast = {charge:0, swinging:false, released:false, relEarlyAt:0, relAngle:0, relRoll:0, peak:0, t0:0, tilt0:0, g0:0};
+  G.cast = {charge:0, swinging:false, released:false, relEarlyAt:0, tRel:0, aimRoll:0, peak:0, t0:0, tilt0:0, endAt:0, samples:[]};
   vib(VIB.ready); sfx.ready();
   setPhase('ready');
 }
@@ -618,53 +651,65 @@ function idleDetect(dt, P){
     }
   } else { c.holdT = 0; if (SN.tilt < P.prep - 12) c.hinted = false; }
 }
+// 조준: 휘두르기 전, 누르고 젖힌 상태에서 좌우로 기울인 만큼. 휘두르기 시작하면 고정
+const aimX = roll => clamp(roll / 30, -0.9, 0.9);
 function readyUpdate(dt, P, rp, sensor, now){
   const c = G.cast;
+  c.samples.push(now, rp);
   if (!c.swinging) {
     c.charge = Math.min(1, c.charge + dt / 1.1);
+    c.aimRoll = S.set.sim ? G.sim.roll : SN.roll;
     vibLevel(0.12 + 0.6 * c.charge, 'hum');
     if (sensor && (SN.tilt < P.prep - 14 || rp > P.rot * 0.8)) {
-      c.swinging = true; c.t0 = now; c.peak = rp; c.tilt0 = Math.max(SN.tilt, P.prep); c.g0 = SN.gyro;
-      if (c.relEarlyAt) { c.released = true; c.relAngle = c.tilt0 + 10; c.relRoll = SN.roll; }
-    } else if (c.relEarlyAt && now - c.relEarlyAt > 260) {
+      c.swinging = true; c.t0 = now; c.tilt0 = Math.max(SN.tilt, P.prep);
+    } else if (c.relEarlyAt && now - c.relEarlyAt > 350) {
       vibLevel(0); toast('휘두르는 도중에 손을 떼야 던져져'); setPhase('idle');
     }
-  } else {
-    c.peak = Math.max(c.peak, rp);
-    if (SN.tilt < c.tilt0 - 40 || SN.tilt < -15 || now - c.t0 > 900) {
-      if (c.peak < P.rot) { vibLevel(0); toast('너무 살살 휘둘렀어. 팔 전체로 세게!'); setPhase('idle'); return; }
-      const power = clamp((c.peak - P.rot) / (P.rot * 2), 0, 1);
-      if (!c.released) launch({power, q:0, notReleased:true, roll:SN.roll});
-      else launch({power, q:releaseQ(c.relAngle), relAngle:c.relAngle, roll:c.relRoll});
-    }
+    return;
   }
+  if (!c.endAt && (SN.tilt < c.tilt0 - 40 || SN.tilt < -15 || now - c.t0 > 900)) c.endAt = now;
+  // 휘두르기가 끝나도 0.25초는 늦게 떼는 걸 기다려 줌
+  if (c.endAt && (c.released || now - c.endAt > 250)) finishSwing(P);
 }
-const releaseQ = a => Math.exp(-Math.pow((a - IDEAL_REL) / 17, 2));
+function finishSwing(P){
+  const c = G.cast, s = c.samples;
+  let peak = 0, tPk = c.t0;
+  for (let i = 0; i < s.length; i += 2) if (s[i] >= c.t0 - 300 && s[i + 1] > peak) { peak = s[i + 1]; tPk = s[i]; }
+  if (peak < P.rot) { vibLevel(0); toast('너무 살살 휘둘렀어. 팔 전체로 세게!'); setPhase('idle'); return; }
+  const power = clamp((peak - P.rot) / (P.rot * 2), 0, 1);
+  if (!c.released) { launch({power, notReleased:true, roll:c.aimRoll}); return; }
+  const dtRel = (c.tRel - tPk) / 1000;               // 휘두르는 속도가 가장 빠른 순간과 손 뗀 순간의 차이
+  launch({power, q:Math.exp(-Math.pow(dtRel / 0.17, 2)), early:dtRel < 0, roll:c.aimRoll});
+}
 function onRelease(){
   if (G.phase !== 'ready') return;
-  const c = G.cast;
-  if (c.swinging && !c.released) {
-    c.released = true;
-    c.relAngle = SN.hasGyro ? c.tilt0 + (SN.gyro - c.g0) : SN.tiltRaw;
-    c.relRoll = SN.roll;
-    vibStop();           // 놓는 순간 진동이 뚝 끊김
-  } else if (!c.swinging && !c.relEarlyAt) { c.relEarlyAt = performance.now(); vibStop(); }
+  const c = G.cast, now = performance.now();
+  if (c.released || c.relEarlyAt) return;
+  vibStop();                       // 놓는 순간 진동이 뚝 끊김
+  if (c.swinging) { c.released = true; c.tRel = now; }
+  else { c.relEarlyAt = now; c.tRel = now; c.released = true; }
 }
-function launch({power, q, relAngle = IDEAL_REL, roll = 0, notReleased = false}){
+function launch({power, q = 0, early = false, roll = 0, notReleased = false}){
   vibStop();
   const maxD = maxCast(S.up.rod);
   let d, msg, arc = 0.2, slow = 1;
   if (notReleased) { d = 2; msg = '줄을 안 놓았어! 휘두르는 도중에 손을 떼'; arc = 0.05; }
   else {
-    d = (4 + (maxD - 4) * (0.3 + 0.7 * power)) * (0.3 + 0.7 * q);
-    if (q > 0.8) msg = '완벽한 캐스팅!';
-    else if (relAngle > IDEAL_REL) { msg = '조금 일찍 놓았어'; arc = 0.34; slow = 1.35; }
-    else { msg = '조금 늦게 놓았어'; arc = 0.07; slow = 0.8; }
+    d = (4 + (maxD - 4) * (0.3 + 0.7 * power)) * (0.45 + 0.55 * q);
+    if (q > 0.75) msg = '완벽한 캐스팅!';
+    else if (early) { msg = '조금 일찍 놓았어'; arc = 0.34; slow = 1.3; }
+    else { msg = '조금 늦게 놓았어'; arc = 0.08; slow = 0.85; }
   }
-  G.castD = Math.max(1.5, Math.round(d * 10) / 10);
+  d = Math.max(1.5, d);
+  let X = clamp(aimX(roll) + G.wind * 0.05, -0.9, 0.9);
+  // 포인트 근처면 빨려 들어감
+  const hit = notReleased ? null : G.points.find(p => Math.abs(p.d - d) < 5 + p.d * 0.15 && Math.abs(p.X - X) < 0.3);
+  if (hit) { d = hit.d; X = hit.X; }
+  G.castHit = hit || null;
+  G.castD = Math.round(d * 10) / 10;
   G.castQ = q;
-  G.lureX = clamp(roll / 40 + G.wind * 0.08, -0.9, 0.9);
-  G.flight = {dur:(0.5 + G.castD / 55) * slow, arc, x0:0, y0:0};
+  G.lureX = X;
+  G.flight = {dur:(0.5 + G.castD / 55) * slow, arc};
   G.castMsg = msg;
   sfx.whoosh(); sfx.spool(G.flight.dur);
   setTimeout(() => { if (G.phase === 'flying') vib(VIB.flight); }, 40);
@@ -672,9 +717,9 @@ function launch({power, q, relAngle = IDEAL_REL, roll = 0, notReleased = false})
 }
 function landLure(){
   G.lureD = G.castD; G.tapCount = 0;
-  const hit = G.points.find(p => Math.abs(p.d - G.castD) < 3 + p.d * 0.08 && Math.abs(p.X - G.lureX) < 0.16);
+  const hit = G.castHit;
   G.plan = rollCatch(G.castD, !!hit);
-  G.biteTimer = rand(3, 10) * (hit ? 0.55 : 1);
+  G.biteTimer = rand(3, 8) * (hit ? 0.55 : 1);
   G.fakeDone = false; G.noBite = false; G.spookCd = 0;
   addRipple(G.castD, 1.4);
   vib(VIB.land); sfx.plop();
@@ -693,11 +738,11 @@ function rollCatch(d, hit){
   return pool[pool.length - 1].f;
 }
 
-/* ---------- 2. 기다리기 ---------- */
+/* ---------- 2. 기다리기 (+ 아주 약한 톡톡) ---------- */
 function waitUpdate(dt, sensor, rp){
   G.biteTimer -= dt; G.spookCd = Math.max(0, G.spookCd - dt);
   G.ambT -= dt;
-  if (G.ambT <= 0) { G.ambT = rand(3, 4.5); if (canVib()) try { navigator.vibrate(5); } catch (e) {} }   // 아주 약한 물결
+  if (G.ambT <= 0) { G.ambT = rand(3, 4.5); if (canVib()) try { navigator.vibrate(5); } catch (e) {} }
   if (sensor) {
     if ((SN.rot > 380 || Math.abs(SN.linX) > 14) && !G.spookCd) spook();
     else if (rp > 80 && rp < 380 && G.rotLow && G.time - G.lastFlick > 0.5) flick();
@@ -709,48 +754,35 @@ function waitUpdate(dt, sensor, rp){
     else if (!G.noBite) { G.noBite = true; toast('입질이 없어… 감아서 다시 던져보자'); }
   }
 }
-function flick(){
-  G.lastFlick = G.time; G.biteTimer -= 1.0;
-  vib(VIB.flick); addRipple(G.lureD, .5); G.floatW = .5;
-}
-function spook(){
-  G.spookCd = 2; G.biteTimer += 4;
-  toast('너무 세게 흔들었어. 물고기가 놀랐어');
-}
+function flick(){ G.lastFlick = G.time; G.biteTimer -= 1.0; vib(VIB.flick); addRipple(G.lureD, .5); G.floatW = .5; }
+function spook(){ G.spookCd = 2; G.biteTimer += 4; toast('너무 세게 흔들었어. 물고기가 놀랐어'); }
 function reelTap(){
+  if (G.phase !== 'wait' && G.phase !== 'nibble') return;
   const step = reelStep(S.up.reel);
   G.lastTap = G.time; G.tapCount++;
-  if (G.phase === 'wait' || G.phase === 'nibble') {
-    G.lureD = Math.max(0, G.lureD - step * 0.5); G.biteTimer -= 0.2;
-    vib(VIB.tap); sfx.tick();
-    if (G.lureD <= 0.8) { lose('빈 바늘이야… 다시 던져보자', false); return; }
-  } else if (G.phase === 'fight') {
-    const fi = G.fight;
-    sfx.tick();
-    if (fi.state === 'run') { fi.tension += 9; if (!G.hintedRunTap) { G.hintedRunTap = true; toast('달아날 땐 감지 마! 버텨'); } }
-    else { fi.D = Math.max(0, fi.D - step * 0.45); fi.tension += 2; fi.lastAct = G.time; vib(VIB.tap); }
-  }
+  G.lureD = Math.max(0, G.lureD - step * 0.5); G.biteTimer -= 0.2;
+  vib(VIB.tap); sfx.tick();
+  if (G.lureD <= 0.8) { lose('빈 바늘이야… 다시 던져보자', false); return; }
   updateCueBars();
 }
-
-/* ---------- 3. 예신 ---------- */
+// 톡톡: 아주 약한 진동. 이때 채도 아무 일도 안 일어남
 function startNibble(fake){
-  const f = G.plan; G.sim.strike = false;
-  G.nib = {fake, k:fake ? randi(2, 4) : randi(1, 3), i:0, next:0.15, after:rand(0.5, 1.0), pat:fake ? VIB.weed : (f ? f.nib : VIB.weed)};
+  G.sim.strike = false;
+  G.nib = {fake, k:fake ? randi(2, 4) : randi(1, 3), i:0, next:0.15, after:rand(0.5, 1.0)};
   setPhase('nibble');
 }
-function nibbleUpdate(dt, sensor, P){
+function nibbleUpdate(dt){
   const n = G.nib;
-  if (strikeNow(sensor, P)) { lose(n.fake ? '헛챔질! 수초였어. 미끼만 날렸어' : '헛챔질! 톡톡은 참아야 해', false); return; }
+  G.sim.strike = false;
   n.next -= dt;
   if (n.next <= 0) {
-    if (n.i < n.k) { vib(n.pat); sfx.nibble(); G.floatW = 1; addRipple(G.lureD, .45); n.i++; n.next = n.i < n.k ? rand(0.6, 1.2) : n.after; }
+    if (n.i < n.k) { vib([12]); G.floatW = 0.7; addRipple(G.lureD, .35); n.i++; n.next = n.i < n.k ? rand(0.6, 1.2) : n.after; }
     else if (n.fake || !G.plan) { G.fakeDone = true; G.biteTimer = rand(1.5, 4); setPhase('wait'); }
     else startBite();
   }
 }
 
-/* ---------- 4. 본신 + 챔질 ---------- */
+/* ---------- 3. 입질 → 낚아채기 ---------- */
 function strikeNow(sensor, P){
   if (G.sim.strike) { G.sim.strike = false; return true; }
   if (!sensor) return false;
@@ -758,120 +790,110 @@ function strikeNow(sensor, P){
 }
 function startBite(){
   const f = G.plan;
-  vib([Math.round(clamp(110 + f.str * 45, 110, 300))]); sfx.thunk();
+  vib([Math.round(clamp(380 + f.str * 40, 380, 550))]); sfx.thunk();   // 크고 확실한 진동
   G.floatSink = 1; addRipple(G.lureD, 1.1); splash(G.lureD, G.lureX, 6);
   setPhase('bite');
 }
 function biteUpdate(dt, sensor, P){
   if (strikeNow(sensor, P)) { hook(G.phaseT); return; }
-  if (G.phaseT > BITE_WINDOW) lose('놓쳤어! "쿵" 하고 오면 바로 위로 채', false);
+  if (G.phaseT > BITE_WINDOW) lose('놓쳤어! 큰 진동이 오면 바로 폰을 확 들어', false);
 }
 function hook(rt){
   const f = G.plan;
-  G.strikeJ = rt < 0.35 ? 'perfect' : 'good';
-  vib([Math.round(40 + 25 * f.str), 30, Math.round(30 + 55 * f.str)]);   // "턱" + 물고기 무게만큼 반동
+  G.strikeJ = rt < 0.45 ? 'perfect' : 'good';
+  vib([Math.round(40 + 25 * f.str), 30, Math.round(30 + 55 * f.str)]);
   sfx.creak();
   toast(G.strikeJ === 'perfect' ? '퍼펙트 챔질!' : '걸었다!');
-  G.fight = {D:Math.max(4, G.lureD), stam:f.fight.stam, max:f.fight.stam, tension:30, state:'rest', stT:1.0,
-    dir:Math.random() < .5 ? -1 : 1, X:G.lureX, speed:0, hookLoss:0, maxLoss:0, breakT:0, near:0, nearOn:false,
-    lastAct:G.time, lastPump:-9, creakT:0, t:0};
-  G.hintedRunTap = false;
+  const D = Math.max(4, G.lureD);
+  G.fight = {D, D0:D, stam:f.fight.stam, max:f.fight.stam, tension:20, state:'rest', stT:0.8,
+    dir:Math.random() < .5 ? -1 : 1, X:G.lureX, speed:0, near:0, nearOn:false, breakT:0, t:0,
+    reelRate:0, lastShake:-9, creakT:0};
+  G.reelAcc = 0; G.reelNotch = 0;
   setPhase('fight');
+  showReel(S.set.fightMode === 'reel');
 }
 
-/* ---------- 5. 파이팅 ---------- */
+/* ---------- 4. 파이팅 (A: 흔들기 / B: 릴 감기) ---------- */
 function nextFightState(fi, f){
-  const ff = f.fight, sr = fi.stam / fi.max, prev = fi.state, r = Math.random();
-  const pRun = 0.1 + 0.6 * sr, pShake = ff.shake * (0.6 + 0.4 * sr);
-  if (prev === 'run' && ff.jump && r < ff.jump) { fi.state = 'jump'; fi.stT = 0.75; splash(fi.D, fi.X, 18); sfx.bigSplash(); vib([90, 40, 60]); return; }
-  if (prev !== 'run' && r < pRun) {
+  const ff = f.fight, sr = fi.stam / fi.max, prev = fi.state;
+  if (prev !== 'run' && Math.random() < 0.15 + 0.6 * sr) {
     fi.state = 'run'; fi.stT = rand(...ff.runDur) * (0.7 + 0.3 * sr);
     if (Math.random() < 0.6) fi.dir *= -1;
-    vib([Math.round(60 + 30 * f.str)]);
-  } else if (prev !== 'shake' && r < pRun + pShake) {
-    fi.state = 'shake'; fi.stT = rand(0.8, 1.4); sfx.splash();
+    vib([Math.round(80 + 40 * f.str)]);
+    if (ff.jump && Math.random() < ff.jump) { splash(fi.D, fi.X, 18); sfx.bigSplash(); }
   } else { fi.state = 'rest'; fi.stT = rand(...ff.rest); }
   renderCue(); renderSim();
 }
-function fightUpdate(dt, sensor, P, still){
-  const fi = G.fight, f = G.plan, ff = f.fight;
-  const sr = fi.stam / fi.max, line = S.up.line;
+// A: 흔들 때마다 끌어옴
+function shakeReel(ratio){
+  const fi = G.fight; if (!fi || G.phase !== 'fight' || S.set.fightMode !== 'shake') return;
+  const gain = reelStep(S.up.reel) * 0.55 * (fi.state === 'run' ? 0.5 : 1) * (0.85 + 0.15 * ratio);
+  fi.D = Math.max(0, fi.D - gain); fi.lastShake = G.time;
+  if (Math.random() < 0.35) splash(fi.D, fi.X, 2);
+}
+// B: 릴을 돌린 각도만큼 감음
+function reelTurn(deg){
+  const fi = G.fight; if (!fi || G.phase !== 'fight' || S.set.fightMode !== 'reel' || deg <= 0) return;
+  const perRev = reelStep(S.up.reel) * 1.6;
+  fi.D = Math.max(0, fi.D - deg / 360 * perRev * (fi.state === 'run' ? 0.45 : 1));
+  fi.reelRate += deg;
+  G.reelAcc += deg;
+  G.reelNotch += deg;
+  while (G.reelNotch >= 30) {             // 한 칸 돌 때마다 딸깍. 팽팽할수록 묵직하게
+    G.reelNotch -= 30;
+    vib([Math.round(8 + fi.tension * 0.3)]);
+    tone(1600 - fi.tension * 6, .02, 'square', .035);
+  }
+}
+function fightUpdate(dt, sensor){
+  const fi = G.fight, f = G.plan, ff = f.fight, line = S.up.line, mode = S.set.fightMode;
+  const sr = fi.stam / fi.max;
   fi.t += dt; fi.stT -= dt;
   if (fi.stT <= 0) nextFightState(fi, f);
-  const roll = sensor ? SN.roll : G.sim.roll;
-  const pulling = sensor ? (SN.shaky > still * 1.6 || angleRise(400) > P.pump) : G.sim.pull > 0;
-  let target = 20;
+  // 초당 감는 속도 (B)
+  const rps = fi.reelRate / 360 / Math.max(dt, 1e-3); fi.reelRate = 0;
+  fi.rps = lerp(fi.rps || 0, rps, Math.min(1, dt * 6));
   if (fi.state === 'run') {
     fi.speed = ff.run * (0.35 + 0.65 * sr);
     fi.D += fi.speed * dt;
     fi.X = clamp(fi.X + fi.dir * fi.speed * 0.04 * dt, -0.95, 0.95);
-    target = 48 + 12 * f.str;
-    if (pulling) target += 45;
-    if (roll * fi.dir < -12) { target -= 14; fi.stam -= 2 * dt; }        // 반대로 기울여 버팀
-    else if (roll * fi.dir > 12) target += 12;
     fi.stam -= 6 * dt;
-    dragSound(fi.speed / 3.4, fi.dir);
-  } else if (fi.state === 'rest') {
-    fi.speed = 0; target = 20 + ff.dig;
-    dragSound(0, 0);
-    const lift = sensor ? angleRise(700) >= P.pump : G.sim.lift;
-    if (lift && G.time - fi.lastPump > 0.7) {
-      G.sim.lift = false;
-      fi.D = Math.max(0, fi.D - (1.5 + 0.3 * S.up.reel) * (1 + 0.6 * (1 - sr)) * (ff.dig > 15 ? 0.7 : 1));
-      fi.tension += 14; fi.lastPump = fi.lastAct = G.time; fi.stam -= 3;
-      vib([30, 30, 15]); sfx.pump();
-    }
-    if (G.time - fi.lastAct > 2.5) fi.stam = Math.min(fi.max, fi.stam + 4 * dt);
-  } else { // shake · jump
-    fi.speed = 0; target = 42; dragSound(0.15, fi.dir);
-    const excess = sensor ? Math.max(0, SN.shaky - still) : (G.sim.shake > 0 ? 110 : 0);
-    fi.hookLoss += excess * 0.6 * dt;
-    fi.stam -= 4 * dt;
-    if (Math.random() < dt * 4) splash(fi.D, fi.X, 3);
-  }
-  if (fi.state !== 'shake' && fi.state !== 'jump') fi.hookLoss = Math.max(0, fi.hookLoss - 12 * dt);
-  fi.maxLoss = Math.max(fi.maxLoss, fi.hookLoss);
-  target *= 1 - 0.06 * line;
-  fi.tension += (target - fi.tension) * Math.min(1, dt * 3.5);
-  fi.tension = clamp(fi.tension, 0, 130);
-  fi.stam = clamp(fi.stam, 0, fi.max);
-  // 진동
-  if (fi.tension >= 85) {
-    vibLevel(0.9, 'grind');
-    fi.creakT -= dt; if (fi.creakT <= 0) { fi.creakT = 0.35; sfx.strain(); }
-    if (!fi.nearOn) { fi.nearOn = true; fi.near++; }
+    dragSound(fi.speed / 3.4 * (mode === 'reel' && fi.rps > 0.2 ? 0.6 : 1), fi.dir);
   } else {
-    if (fi.tension < 78) fi.nearOn = false;
-    if (fi.state === 'run') vibLevel(0.4 + 0.5 * fi.tension / 100, 'hum');
-    else if (fi.state === 'rest') vibLevel(0.08 + 0.25 * fi.tension / 100, 'hum');
-    else vibLevel(0.7, 'shake');
+    fi.speed = 0; fi.D += 0.15 * dt * (ff.dig > 15 ? 2 : 1);
+    fi.stam = Math.min(fi.max, fi.stam + 1 * dt);
+    dragSound(0, 0);
   }
-  if (fi.tension >= 100) { fi.breakT += dt; if (fi.breakT > 0.45) { sfx.snap(); lose('줄이 끊어졌어! 달아날 땐 당기지 말고 버텨'); return; } }
-  else fi.breakT = 0;
-  if (fi.hookLoss >= 100) { lose('바늘이 빠졌어! 덜덜 떨릴 땐 폰을 흔들지 마'); return; }
-  G.sim.pull = Math.max(0, G.sim.pull - dt); G.sim.shake = Math.max(0, G.sim.shake - dt);
-  if (fi.D <= 2.5) startSurface();
+  if (mode === 'reel') {
+    const pull = fi.state === 'run' ? 45 + 10 * f.str : 8 + ff.dig;
+    const target = (pull + fi.rps * (fi.state === 'run' ? 30 : 10)) * (1 - 0.06 * line);
+    fi.tension += (target - fi.tension) * Math.min(1, dt * 4);
+    if (fi.tension >= 85) {
+      fi.creakT -= dt; if (fi.creakT <= 0) { fi.creakT = 0.35; sfx.strain(); }
+      if (!fi.nearOn) { fi.nearOn = true; fi.near++; }
+    } else if (fi.tension < 78) fi.nearOn = false;
+    if (fi.tension >= 100) { fi.breakT += dt; if (fi.breakT > 0.6) { sfx.snap(); lose('줄이 끊어졌어! 물고기가 달릴 땐 천천히 감아'); return; } }
+    else fi.breakT = 0;
+    // 안 감고 있을 때만 계속 진동(감는 중엔 딸깍 진동이 우선)
+    if (fi.rps < 0.15) vibLevel(fi.state === 'run' ? 0.35 + fi.tension / 220 : 0.06, fi.tension >= 85 ? 'grind' : 'hum');
+    else vibLevel(fi.tension >= 85 ? 0.9 : 0, 'grind');
+    updateReelUI();
+  } else {
+    fi.tension = fi.state === 'run' ? 70 : 20;
+    vibLevel(fi.state === 'run' ? 0.75 : 0.08, 'hum');
+  }
+  fi.stam = clamp(fi.stam, 0, fi.max);
+  if (fi.D > maxCast(S.up.rod) + 8) { lose('줄이 다 풀렸어! 물고기가 멈출 때 부지런히 감아'); return; }
+  if (fi.D <= 2.5) endFight();
   else updateCueBars();
 }
+function endFight(){
+  vibStop(); dragSound(0, 0); showReel(false);
+  vib(VIB.yank); sfx.yank(); startYankWatch();
+  setPhase('yank');
+}
 
-/* ---------- 6. 마지막 발악 + 끌어올리기 ---------- */
-function startSurface(){
-  vibStop(); dragSound(0, 0);
-  G.surf = {dur:rand(0.8, 1.3)};
-  setPhase('surface');
-}
-function startSurge(){
-  vib([200]); sfx.splash(); splash(2.5, G.fight.X, 10);
-  setPhase('surge');
-}
-function surgeUpdate(dt, sensor, P, still){
-  const fi = G.fight;
-  dragSound(0.9, fi.dir);
-  vibLevel(0.85, 'hum');
-  const pulling = sensor ? (SN.shaky > still * 1.8 || angleRise(300) > P.pump + 4) : G.sim.pull > 0;
-  if (pulling && G.phaseT > 0.15) { sfx.snap(); lose('마지막 발악에 줄이 끊어졌어! 끝까지 버텨'); return; }
-  if (G.phaseT > 1.1) { vibLevel(0); dragSound(0, 0); vib(VIB.yank); sfx.yank(); startYankWatch(); setPhase('yank'); }
-}
+/* ---------- 5. 마무리 (임시: 뒤로 제쳐 끌어올리기) ---------- */
 let yankW = {on:false, start:0, ref:0};
 function startYankWatch(){ yankW = {on:true, start:performance.now() + 150, ref:SN.tilt}; }
 function stopYankWatch(){ yankW.on = false; }
@@ -891,61 +913,64 @@ function landFish(){
   const size = Math.round((f.size[0] + (f.size[1] - f.size[0]) * t) * 10) / 10;
   const mid = (f.size[0] + f.size[1]) / 2;
   const basePrice = f.junk ? f.base : f.base * Math.pow(size / mid, 1.4);
-  let score = (G.strikeJ === 'perfect' ? 2 : 1) + (G.fight.near === 0 ? 1 : 0) + (G.fight.maxLoss < 50 ? 1 : 0) + (G.castQ > 0.8 ? 1 : 0);
-  const grade = f.junk ? null : score >= 5 ? GRADES[0] : score >= 4 ? GRADES[1] : score >= 3 ? GRADES[2] : GRADES[3];
+  const score = (G.strikeJ === 'perfect' ? 2 : 1) + (G.castQ > 0.75 ? 1 : 0) + (G.fight.near === 0 ? 1 : 0);
+  const grade = f.junk ? null : score >= 4 ? GRADES[0] : score >= 3 ? GRADES[1] : score >= 2 ? GRADES[2] : GRADES[3];
   const price = Math.round(basePrice * (grade ? grade.mult : 1) / 10) * 10;
   const rec = S.dex[f.id];
   const isNew = !rec, isBest = !!rec && size > rec.best;
   S.dex[f.id] = {n:(rec ? rec.n : 0) + 1, best:Math.max(rec ? rec.best : 0, size)};
   persist();
   G.catchInfo = {f, size, price, grade, isNew, isBest, castD:G.castD, strikeJ:G.strikeJ, near:G.fight.near};
-  if (!f.junk && f.str >= 2.3) { G.net = {tries:2, t:0, period:1.4}; setPhase('net'); }
-  else startReveal();
+  startReveal();
 }
-function netUpdate(dt){
-  const n = G.net; n.t += dt;
-  if (n.t > 7) lose('뜰채질이 늦었어! 물고기가 빠져나갔어');
-}
-const netScale = () => 1.6 - ((G.net.t % G.net.period) / G.net.period) * 1.2;
-function netTap(){
-  const sc = netScale();
-  if (Math.abs(sc - 1) < 0.14) { vib([60]); sfx.splash(); startReveal(); }
-  else {
-    G.net.tries--;
-    if (G.net.tries <= 0) lose('뜰채질 실패! 물고기가 빠져나갔어');
-    else { toast('빗나갔어! 원이 딱 맞을 때 눌러'); vib([30, 40, 30]); }
-  }
-}
-function startReveal(){
-  vib(VIB.catch); sfx.bigSplash(); sfx.catch();
-  setPhase('reveal');
-}
+function startReveal(){ vib(VIB.catch); sfx.bigSplash(); sfx.catch(); setPhase('reveal'); }
 
-/* ---------- 7. 확인 ---------- */
+/* ---------- 6. 확인 ---------- */
 function resultUpdate(dt, sensor){
   const r = G.res; if (!r || $('#modal').hidden || !$('#selfie').hidden) return;
   r.t += dt;
   if (!G.catchInfo.f.junk) {
     r.flapT -= dt;
-    if (r.flapT <= 0) {   // 손 위에서 파닥파닥
-      r.flapT = r.t < 4 ? rand(0.35, 0.6) : rand(2.2, 3.2);
-      vib([randi(15, 40), randi(25, 60), randi(10, 35), randi(30, 70), randi(8, 25)]);
-    }
+    if (r.flapT <= 0) { r.flapT = r.t < 4 ? rand(0.35, 0.6) : rand(2.2, 3.2); vib([randi(15, 40), randi(25, 60), randi(10, 35), randi(30, 70), randi(8, 25)]); }
   }
-  if (sensor) {   // 폰을 엎으면 놓아주기
+  if (sensor) {
     if (SN.tilt < 20) r.armRel = true;
     if (r.armRel && SN.tilt > 55) { r.flipT += dt; if (r.flipT > 0.3) finishCatch(false); }
     else r.flipT = 0;
   }
 }
-
 function lose(msg, wasFish = true){
-  stopYankWatch(); vibStop(); dragSound(0, 0);
+  stopYankWatch(); vibStop(); dragSound(0, 0); showReel(false);
   G.lostMsg = msg;
   if (wasFish) { vib(VIB.lost); sfx.lost(); splash(G.fight ? G.fight.D : G.lureD, G.fight ? G.fight.X : G.lureX, 6); }
-  G.fight = G.phase === 'fight' || G.phase === 'surge' || G.phase === 'net' || G.phase === 'yank' ? G.fight : null;
+  if (!['fight', 'yank'].includes(G.phase)) G.fight = null;
   setPhase('lost');
   toast(msg);
+}
+
+/* ---------- 릴 UI (B 방식) ---------- */
+const reelEl = () => $('#reel');
+function showReel(on){ const el = reelEl(); if (el) el.hidden = !on; document.body.classList.toggle('reeling', !!on); }
+function updateReelUI(){
+  const k = $('#reelKnob'), fi = G.fight; if (!k || !fi) return;
+  k.style.transform = `rotate(${G.reelAcc}deg)`;
+  const ring = $('#reelRing');
+  if (ring) ring.style.borderColor = fi.tension > 85 ? 'var(--bad)' : fi.tension > 60 ? 'var(--bobber)' : 'rgba(243,237,226,.35)';
+}
+let reelPtr = null;
+function reelAngle(e){ const r = reelEl().getBoundingClientRect(); return Math.atan2(e.clientY - (r.top + r.height / 2), e.clientX - (r.left + r.width / 2)) * 180 / Math.PI; }
+function wireReel(){
+  const el = reelEl();
+  el.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); audioInit(); reelPtr = {id:e.pointerId, a:reelAngle(e)}; try { el.setPointerCapture(e.pointerId); } catch (_) {} });
+  el.addEventListener('pointermove', e => {
+    if (!reelPtr || e.pointerId !== reelPtr.id) return;
+    const a = reelAngle(e); let d = a - reelPtr.a;
+    if (d > 180) d -= 360; if (d < -180) d += 360;
+    reelPtr.a = a;
+    if (d > 0) reelTurn(d);                      // 시계 방향만 감기
+  });
+  const end = e => { if (reelPtr && e.pointerId === reelPtr.id) reelPtr = null; };
+  el.addEventListener('pointerup', end); el.addEventListener('pointercancel', end);
 }
 
 /* ---------- 매 프레임 ---------- */
@@ -955,7 +980,7 @@ function update(dt){
   G.shakeCam *= Math.pow(0.002, dt);
   G.floatW = Math.max(0, G.floatW - dt * 2.2);
   if (G.phase !== 'bite' && G.phase !== 'nibble') G.floatSink = Math.max(0, G.floatSink - dt * 1.5);
-  const P = swingP(), still = stillThr();
+  const P = swingP();
   const rp = SN.rotAcc; SN.rotAcc = 0;
   const sensor = !S.set.sim && SN.ok;
   if (G.sim.rollT > 0) { G.sim.rollT -= dt; if (G.sim.rollT <= 0) G.sim.roll = 0; }
@@ -964,17 +989,14 @@ function update(dt){
     case 'ready': readyUpdate(dt, P, rp, sensor, now); updateCueBars(); break;
     case 'flying': if (G.phaseT >= G.flight.dur) landLure(); break;
     case 'wait': waitUpdate(dt, sensor, rp); updateCueBars(); break;
-    case 'nibble': nibbleUpdate(dt, sensor, P); break;
+    case 'nibble': nibbleUpdate(dt); break;
     case 'bite': biteUpdate(dt, sensor, P); break;
-    case 'fight': fightUpdate(dt, sensor, P, still); break;
-    case 'surface': if (G.phaseT > G.surf.dur) startSurge(); break;
-    case 'surge': surgeUpdate(dt, sensor, P, still); break;
+    case 'fight': fightUpdate(dt, sensor); break;
     case 'yank':
       if ((sensor && detectYank()) || G.sim.yank) { G.sim.yank = false; landFish(); }
       else if (G.phaseT > YANK_WINDOW) lose('타이밍을 놓쳤어. 엄청 큰 진동이 오면 바로 뒤로 제쳐!');
       else updateCueBars();
       break;
-    case 'net': netUpdate(dt); break;
     case 'reveal': if (G.phaseT > 1.9) openCatchModal(); break;
     case 'result': resultUpdate(dt, sensor); break;
     case 'lost': if (G.phaseT > 1.6) setPhase('idle'); break;
@@ -1113,11 +1135,13 @@ function drawScene(){
   }
   // 조준 표시
   if (G.phase === 'ready') {
-    const X = clamp((S.set.sim ? G.sim.roll : SN.roll) / 40 + G.wind * 0.08, -0.9, 0.9);
+    const X = clamp(aimX(G.cast ? G.cast.aimRoll : 0) + G.wind * 0.05, -0.9, 0.9);
     const p = lurePos(maxD * 0.55, X);
+    ctx.strokeStyle = 'rgba(242,193,78,.35)'; ctx.lineWidth = 1.5; ctx.setLineDash([3, 6]);
+    ctx.beginPath(); ctx.moveTo(W * 0.7, H * 0.62); ctx.lineTo(p.x, p.y); ctx.stroke(); ctx.setLineDash([]);
     ctx.strokeStyle = 'rgba(242,193,78,.75)'; ctx.lineWidth = 2; ctx.setLineDash([5, 5]);
     ctx.beginPath(); ctx.ellipse(p.x, p.y, 22, 6, 0, 0, TAU); ctx.stroke(); ctx.setLineDash([]);
-    ctx.fillStyle = 'rgba(242,193,78,.85)'; ctx.textAlign = 'center'; ctx.fillText('좌우로 기울여 조준', p.x, p.y - 16); ctx.textAlign = 'left';
+    ctx.fillStyle = 'rgba(242,193,78,.85)'; ctx.textAlign = 'center'; ctx.fillText(G.cast && G.cast.swinging ? '조준 고정' : '좌우로 기울여 조준', p.x, p.y - 16); ctx.textAlign = 'left';
   }
 
   // 물결 원
@@ -1129,13 +1153,13 @@ function drawScene(){
 
   // 걸린 물고기 그림자
   const fi = G.fight;
-  if (fi && ['fight', 'surface', 'surge', 'yank', 'net'].includes(G.phase)) {
+  if (fi && ['fight', 'yank'].includes(G.phase)) {
     const d = G.phase === 'fight' ? fi.D : 2.5;
     const p = lurePos(d, fi.X), s = sAt(d) * 3 + 0.3;
-    const wig = Math.sin(G.time * (fi.state === 'shake' ? 22 : 4)) * (fi.state === 'shake' ? 0.5 : 0.25);
-    const big = G.phase === 'fight' ? 1 : 1.6 + (G.phase === 'surge' ? Math.sin(G.time * 18) * 0.15 : 0);
+    const wig = Math.sin(G.time * (fi.state === 'run' ? 9 : 4)) * 0.25;
+    const big = G.phase === 'fight' ? 1 : 1.6;
     const L = (16 + G.plan.str * 9) * s * big;
-    ctx.fillStyle = G.phase === 'surface' ? `rgba(8,16,20,${0.35 + G.phaseT * 0.3})` : 'rgba(8,16,20,.45)';
+    ctx.fillStyle = 'rgba(8,16,20,.45)';
     ctx.save(); ctx.translate(p.x + (fi.state === 'run' ? fi.dir * 10 * s : 0), p.y + 6 * s); ctx.rotate(wig + (fi.state === 'run' ? (fi.dir > 0 ? 0 : Math.PI) : -Math.PI / 2 * 0));
     ctx.beginPath(); ctx.ellipse(0, 0, L, L * 0.26, 0, 0, TAU); ctx.fill();
     ctx.beginPath(); ctx.moveTo(-L * 0.9, 0); ctx.lineTo(-L * 1.35, -L * 0.25); ctx.lineTo(-L * 1.35, L * 0.25); ctx.closePath(); ctx.fill();
@@ -1148,15 +1172,6 @@ function drawScene(){
 
   ctx.fillStyle = 'rgba(235,242,245,.85)';
   for (const p of G.drops) { ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, TAU); ctx.fill(); }
-
-  // 뜰채
-  if (G.phase === 'net' && G.net) {
-    const p = lurePos(2.5, G.fight.X), sc = netScale(), R = 70;
-    ctx.strokeStyle = 'rgba(242,193,78,.9)'; ctx.lineWidth = 3;
-    ctx.beginPath(); ctx.arc(p.x, p.y, R, 0, TAU); ctx.stroke();
-    ctx.strokeStyle = Math.abs(sc - 1) < 0.14 ? 'rgba(127,209,139,.95)' : 'rgba(243,237,226,.85)'; ctx.lineWidth = 4;
-    ctx.beginPath(); ctx.arc(p.x, p.y, R * sc, 0, TAU); ctx.stroke();
-  }
 
   // 수면 위로! 전체 화면 공개
   if (G.phase === 'reveal' && G.catchInfo) drawReveal();
@@ -1204,10 +1219,8 @@ function rodTarget(){
     case 'wait': case 'nibble': return [W * 0.66, H * 0.50, 0.06 + G.floatW * 0.05];
     case 'bite': return [W * 0.64, H * 0.52, 0.22];
     case 'fight': return [W * (0.62 + fi.X * 0.12) + Math.sin(G.time * 3.1) * W * 0.01, H * (0.47 + fi.tension / 100 * 0.12), 0.1 + fi.tension / 100 * 0.45];
-    case 'surface': return [W * 0.7, H * 0.46, 0.15];
-    case 'surge': return [W * 0.66 + Math.sin(G.time * 20) * 4, H * 0.58, 0.55];
     case 'yank': return [W * 0.66, H * 0.48, 0.42];
-    case 'net': case 'reveal': return [W * 0.80, H * 0.30, 0.12];
+    case 'reveal': return [W * 0.80, H * 0.30, 0.12];
     default: return [W * 0.74, H * 0.46, 0.04];
   }
 }
@@ -1223,11 +1236,11 @@ function drawRodAndLine(){
     lp = {x:lerp(tip.x, end.x, u), y:lerp(tip.y, end.y, u) - Math.sin(Math.PI * u) * H * G.flight.arc};
   } else if (['wait', 'nibble', 'bite', 'lost'].includes(G.phase) && !(G.phase === 'lost' && G.fight)) {
     lp = lurePos(G.lureD); lp.y += Math.sin(G.time * 3) * 1.2;
-  } else if (G.fight && ['fight', 'surface', 'surge', 'yank', 'net'].includes(G.phase)) {
+  } else if (G.fight && ['fight', 'yank'].includes(G.phase)) {
     lp = lurePos(G.phase === 'fight' ? G.fight.D : 2.5, G.fight.X);
   }
   if (lp) {
-    const taut = G.fight && ['fight', 'surge', 'yank'].includes(G.phase);
+    const taut = G.fight && ['fight', 'yank'].includes(G.phase);
     const mx = (tip.x + lp.x) / 2, my = (tip.y + lp.y) / 2 + (taut ? 0 : 22 + (G.time - G.lastTap < .2 ? -10 : 0));
     const tens = taut && G.phase === 'fight' ? G.fight.tension : 50;
     ctx.strokeStyle = taut ? (tens > 85 ? 'rgba(255,140,120,.95)' : 'rgba(250,245,235,.9)') : 'rgba(240,235,225,.6)'; ctx.lineWidth = taut ? 1.4 : 1;
@@ -1399,65 +1412,66 @@ function renderChrome(){
   document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === tab));
   if (!showTabs && tab !== 'fish') closeSheet();
 }
-const STEP_OF = {idle:1, ready:1, flying:1, wait:2, nibble:2, bite:3, fight:4, surface:5, surge:5, yank:5, net:5};
-function stepsHtml(n){ let s = ''; for (let i = 1; i <= 5; i++) s += `<i class="${i < n ? 'done' : i === n ? 'on' : ''}"></i>`; return `<span class="steps">${s}</span>`; }
+const STEP_OF = {idle:1, ready:1, flying:1, wait:2, nibble:2, bite:2, fight:3, yank:4};
+function stepsHtml(n){ let s = ''; for (let i = 1; i <= 4; i++) s += `<i class="${i < n ? 'done' : i === n ? 'on' : ''}"></i>`; return `<span class="steps">${s}</span>`; }
+const modeName = () => (FIGHT_MODES.find(m => m.id === S.set.fightMode) || FIGHT_MODES[1]).name;
 function renderCue(){
   const el = $('#cue'), ph = G.phase;
   el.hidden = ['title', 'result', 'reveal'].includes(ph) || tab !== 'fish';
+  el.classList.toggle('top', ph === 'fight' && S.set.fightMode === 'reel');
   if (el.hidden) return;
   const P = swingP();
   const eb = label => `<div class="eyebrow"><span>${label}</span>${stepsHtml(STEP_OF[ph] || 0)}</div>`;
   let h = '';
   if (ph === 'idle') {
     if (bucketFull()) h = `${eb('물고기통 가득 참')}<div class="verb gold">팔러 가자</div><div class="sub">물고기통이 꽉 찼어. 팔면 다시 낚시할 수 있어</div><button class="cardbtn" id="goSell">물고기통 열기</button>`;
-    else h = `${eb('1 · 던지기 준비')}<div class="verb">누른 채 뒤로</div><div class="sub">화면을 엄지로 꾹 누른 채 폰을 어깨 뒤로 넘겨. 진동이 오면 준비 끝. 물고기 그림자를 노려봐</div>
+    else h = `${eb('던지기 준비')}<div class="verb">누른 채 뒤로</div><div class="sub">화면을 엄지로 꾹 누른 채 폰을 어깨 뒤로 넘겨. 진동이 오면 준비 끝</div>
       <div class="bar"><div class="mark" style="left:${tiltPct(P.prep)}%"></div><div class="dot" id="tiltDot"></div></div>
-      <div class="barlbl"><span>앞으로 숙임</span><span>준비선</span><span>뒤로 젖힘</span></div>`;
+      <div class="barlbl"><span>앞으로 숙임</span><span>준비선</span><span>뒤로 젖힘</span></div>
+      <button class="chip" id="modeChip">씨름 방식: ${modeName()} · 바꾸기</button>`;
   } else if (ph === 'ready') {
-    h = `${eb('1 · 던지기')}<div class="verb hot">휘두르며 떼!</div><div class="sub">앞으로 세게 휘두르다가 폰이 거의 섰을 때 엄지를 떼. 일찍 떼면 높이 떠서 가깝고, 늦으면 발밑에 떨어져</div>
-      <div class="bar"><div class="fill" id="chargeFill" style="background:var(--gold)"></div></div><div class="barlbl"><span>대에 실린 힘</span><span>좌우로 기울여 조준</span></div>`;
+    h = `${eb('던지기')}<div class="verb hot">휘두르며 떼!</div><div class="sub">지금 좌우로 기울여 조준하고, 앞으로 세게 휘두르면서 엄지를 떼. 가장 빠르게 휘두르는 순간에 떼면 멀리 가</div>
+      <div class="bar"><div class="fill" id="chargeFill" style="background:var(--gold)"></div></div><div class="barlbl"><span>대에 실린 힘</span><span>휘두르면 조준 고정</span></div>`;
   } else if (ph === 'flying') {
-    h = `${eb('1 · 던지기')}<div class="verb">슈우욱</div><div class="sub">찌가 물에 닿으면 "톡" 하고 와</div>`;
-  } else if (ph === 'wait' || ph === 'nibble') {
-    h = `${eb('2 · 기다리기')}<div class="verb calm">${ph === 'nibble' ? '참아…' : '기다려'}</div><div class="sub">${ph === 'nibble' ? '톡톡은 건드려 보는 거야. 지금 채면 놓쳐. "쿵"을 기다려' : '살짝 까딱이면(고패질) 물고기가 꼬여. 너무 세게 흔들면 도망가. 화면을 탭하면 천천히 감아'}</div>
+    h = `${eb('던지기')}<div class="verb">슈우욱</div><div class="sub">찌가 물에 닿으면 "톡" 하고 와</div>`;
+  } else if (['wait', 'nibble', 'bite'].includes(ph)) {
+    // 입질 단계는 화면으로 알려주지 않음. 진동으로만 느껴
+    h = `${eb('기다리기')}<div class="verb calm">물속을 느껴봐</div><div class="sub">진동이 크게 "쿵" 오면 폰을 위로 확 들어 올려. 살짝 까딱이면 물고기가 꼬이고, 화면을 탭하면 천천히 감아</div>
       <div class="barlbl"><span id="waitLbl">찌까지 ${G.lureD.toFixed(1)}m</span><span>탭: 감기</span></div>`;
-  } else if (ph === 'bite') {
-    h = `${eb('3 · 챔질')}<div class="verb hot">채!!</div><div class="sub">지금 폰을 위로 확 들어 올려</div>`;
   } else if (ph === 'fight') {
-    const st = G.fight.state;
-    const t = st === 'run' ? ['hot', '버텨!', '달아나는 중이야. 당기지도 감지도 말고 가만히. 반대쪽으로 기울이면 덜 끌려가']
-      : st === 'rest' ? ['gold', '들고 감아!', '멈췄어! 폰을 위로 들어 올렸다가, 내리면서 탭해서 감아']
-      : ['calm', '흔들지 마!', '바늘털이야. 폰을 최대한 가만히 들고 있어'];
-    h = `${eb('4 · 파이팅')}<div class="verb ${t[0]}">${t[1]}</div><div class="sub">${t[2]}</div>
-      <div class="meters"><span>줄 장력</span><div class="bar"><div class="zone" style="left:85%;right:0"></div><div class="fill" id="tenFill"></div></div>
-      <span>${st === 'shake' || st === 'jump' ? '바늘' : '물고기 힘'}</span><div class="bar"><div class="fill" id="stamFill" style="background:var(--calm)"></div></div></div>
+    const run = G.fight.state === 'run', reel = S.set.fightMode === 'reel';
+    const verb = reel ? (run ? '천천히 감아' : '빨리 감아!') : (run ? '더 세게 흔들어!' : '흔들어서 끌어와!');
+    const sub = reel ? (run ? '물고기가 달아나는 중이야. 너무 빨리 감으면 줄이 끊어져' : '물고기가 멈췄어! 아래 릴을 손가락으로 빙글빙글 돌려')
+                     : (run ? '물고기가 끌고 가는 중이야. 덜 끌려오니까 더 세게' : '폰을 좌우로 흔들 때마다 줄이 감겨');
+    h = `${eb('파이팅 · ' + modeName())}<div class="verb ${run ? 'hot' : 'gold'}">${verb}</div><div class="sub">${sub}</div>
+      <div class="meters">${reel ? '<span>줄 장력</span><div class="bar"><div class="zone" style="left:85%;right:0"></div><div class="fill" id="tenFill"></div></div>' : ''}
+      <span>거리</span><div class="bar"><div class="fill" id="distFill" style="background:var(--calm)"></div></div></div>
       <div class="barlbl"><span id="distLbl"></span><span id="dirLbl"></span></div>`;
-  } else if (ph === 'surface') {
-    h = `${eb('5 · 끌어올리기')}<div class="verb calm">…조용해</div><div class="sub">다 왔나? 방심하지 마</div>`;
-  } else if (ph === 'surge') {
-    h = `${eb('5 · 마지막 발악')}<div class="verb hot">버텨!!</div><div class="sub">마지막으로 확 치고 나가! 당기면 끊어져</div>`;
   } else if (ph === 'yank') {
-    h = `${eb('5 · 끌어올리기')}<div class="verb hot">뒤로 제쳐!!</div><div class="sub">지금이야! 폰을 확 뒤로 젖혀서 끌어올려</div>
+    h = `${eb('끌어올리기')}<div class="verb hot">뒤로 제쳐!!</div><div class="sub">폰을 확 뒤로 젖혀서 끌어올려</div>
       <div class="bar"><div class="fill" id="yankFill" style="background:var(--gold)"></div></div>`;
-  } else if (ph === 'net') {
-    h = `${eb('5 · 뜰채')}<div class="verb gold">뜰채 대!</div><div class="sub">대물이야! 움직이는 원이 노란 원에 딱 맞을 때 화면을 탭해</div>`;
   } else if (ph === 'lost') {
     h = `<div class="eyebrow"><span>아쉽다</span></div><div class="verb">놓쳤다</div><div class="sub">${esc(G.lostMsg)}</div>`;
   }
   el.innerHTML = `<div class="card">${h}</div>`;
   const gs = $('#goSell'); if (gs) gs.onclick = () => openTab('bucket');
+  const mc = $('#modeChip'); if (mc) mc.onclick = e => { e.stopPropagation(); toggleFightMode(); };
   updateCueBars();
+}
+function toggleFightMode(){
+  S.set.fightMode = S.set.fightMode === 'reel' ? 'shake' : 'reel'; persist();
+  toast(`씨름 방식: ${modeName()}`); renderCue(); renderSim();
 }
 const tiltPct = t => clamp((t + 60) / 150 * 100, 0, 100);
 function updateCueBars(){
   const ph = G.phase;
   if (ph === 'idle') { const d = $('#tiltDot'); if (d) d.style.left = tiltPct(S.set.sim ? -20 : SN.tilt) + '%'; }
   else if (ph === 'ready') { const f = $('#chargeFill'); if (f && G.cast) f.style.width = (G.cast.charge * 100).toFixed(0) + '%'; }
-  else if (ph === 'wait') { const l = $('#waitLbl'); if (l) l.textContent = `찌까지 ${G.lureD.toFixed(1)}m`; }
+  else if (ph === 'wait' || ph === 'nibble' || ph === 'bite') { const l = $('#waitLbl'); if (l) l.textContent = `찌까지 ${G.lureD.toFixed(1)}m`; }
   else if (ph === 'fight') {
-    const fi = G.fight, t = $('#tenFill'), s = $('#stamFill');
+    const fi = G.fight, t = $('#tenFill'), d = $('#distFill');
     if (t) { t.style.width = clamp(fi.tension, 0, 100).toFixed(1) + '%'; t.style.background = fi.tension > 85 ? 'var(--bad)' : fi.tension > 60 ? 'var(--bobber)' : 'var(--good)'; }
-    if (s) { const shake = fi.state === 'shake' || fi.state === 'jump'; s.style.width = (shake ? 100 - fi.hookLoss : fi.stam / fi.max * 100).toFixed(1) + '%'; s.style.background = shake ? (fi.hookLoss > 60 ? 'var(--bad)' : 'var(--gold)') : 'var(--calm)'; }
+    if (d) d.style.width = clamp(fi.D / Math.max(fi.D0, fi.D, 1) * 100, 0, 100).toFixed(1) + '%';
     const dl = $('#distLbl'); if (dl) dl.textContent = `남은 거리 ${fi.D.toFixed(1)}m`;
     const dr = $('#dirLbl'); if (dr) dr.textContent = fi.state === 'run' ? (fi.dir < 0 ? '← 왼쪽으로 달아남' : '오른쪽으로 달아남 →') : '';
   } else if (ph === 'yank') { const f = $('#yankFill'); if (f) f.style.width = (100 - G.phaseT / YANK_WINDOW * 100).toFixed(1) + '%'; }
@@ -1468,46 +1482,41 @@ function renderSim(){
   const el = $('#sim');
   el.hidden = !S.set.sim || ['title', 'result', 'reveal'].includes(G.phase) || tab !== 'fish';
   if (el.hidden) return;
-  const fiState = G.fight && G.fight.state;
+  const reel = S.set.fightMode === 'reel';
   const B = {
-    idle:  [['arm', '누른 채 뒤로 젖히기 (B)']],
-    ready: [['relPerfect', '휘두르며 떼기 (F)'], ['relEarly', '일찍 떼기'], ['relLate', '늦게 떼기'], ['rollL', '← 조준'], ['rollR', '조준 →']],
-    wait:  [['tap', '감기 (스페이스)'], ['flick', '고패질 (G)'], ['strike', '챔질 (H)']],
-    nibble:[['tap', '감기'], ['strike', '챔질 (H)']],
-    bite:  [['strike', '챔질 (H)']],
-    fight: [['lift', '들어 올리기 (P)'], ['tap', '감기 (스페이스)'], ['pull', '당기기 (실수)'], ['shake', '흔들기 (실수)'], ['rollL', '← 기울이기'], ['rollR', '기울이기 →']],
-    surge: [['pull', '당기기 (실수)']],
+    idle:  [['arm', '누른 채 뒤로 젖히기 (B)'], ['mode', '씨름 방식 바꾸기 (M)']],
+    ready: [['rollL', '← 조준'], ['rollR', '조준 →'], ['relPerfect', '휘두르며 떼기 (F)'], ['relEarly', '일찍 떼기'], ['relLate', '늦게 떼기']],
+    wait:  [['tap', '감기 (스페이스)'], ['flick', '고패질 (G)'], ['strike', '낚아채기 (H)']],
+    nibble:[['tap', '감기'], ['strike', '낚아채기 (H)']],
+    bite:  [['strike', '낚아채기 (H)']],
+    fight: reel ? [['reel', '릴 반 바퀴 (R)']] : [['shake', '흔들기 (S)']],
     yank:  [['yank', '뒤로 제치기 (Y)']],
-    net:   [['net', '뜰채 탭 (N)']],
   }[G.phase] || [];
-  el.innerHTML = `<div class="lbl">버튼 모드 · 센서 대신 눌러서 테스트${G.phase === 'fight' ? ` · 지금: ${{run:'질주', rest:'멈춤', shake:'바늘털이', jump:'점프'}[fiState]}` : ''}</div>` + B.map(([e, t]) => `<button data-e="${e}">${t}</button>`).join('');
+  el.innerHTML = `<div class="lbl">버튼 모드 · 센서 대신 눌러서 테스트</div>` + B.map(([e, t]) => `<button data-e="${e}">${t}</button>`).join('');
   el.querySelectorAll('button').forEach(b => b.onpointerdown = ev => { ev.preventDefault(); ev.stopPropagation(); simEmit(b.dataset.e); });
 }
 function simEmit(e){
   audioInit();
   switch (e) {
     case 'arm': if (G.phase === 'idle') arm(); break;
+    case 'mode': if (G.phase === 'idle') toggleFightMode(); break;
     case 'relPerfect': case 'relEarly': case 'relLate':
-      if (G.phase === 'ready') {
-        const q = e === 'relPerfect' ? rand(0.85, 1) : rand(0.35, 0.55);
-        launch({power:rand(0.6, 0.95), q, relAngle:e === 'relEarly' ? 40 : e === 'relLate' ? -30 : IDEAL_REL, roll:G.sim.roll});
-      } break;
-    case 'rollL': G.sim.roll = -25; G.sim.rollT = 1.6; break;
-    case 'rollR': G.sim.roll = 25; G.sim.rollT = 1.6; break;
-    case 'tap': if (['wait', 'nibble', 'fight'].includes(G.phase)) reelTap(); break;
+      if (G.phase === 'ready') launch({power:rand(0.6, 0.95), q:e === 'relPerfect' ? rand(0.85, 1) : rand(0.35, 0.55), early:e === 'relEarly', roll:G.cast.aimRoll});
+      break;
+    case 'rollL': G.sim.roll = -22; G.sim.rollT = 3; break;
+    case 'rollR': G.sim.roll = 22; G.sim.rollT = 3; break;
+    case 'tap': reelTap(); break;
     case 'flick': if (G.phase === 'wait') flick(); break;
     case 'strike': G.sim.strike = true; break;
-    case 'lift': G.sim.lift = true; break;
-    case 'pull': G.sim.pull = 0.6; break;
-    case 'shake': G.sim.shake = 0.6; break;
+    case 'shake': if (G.phase === 'fight') { const m = S.set.fightMode; S.set.fightMode = 'shake'; shakeReel(1.3); S.set.fightMode = m; } break;
+    case 'reel': if (G.phase === 'fight') { const m = S.set.fightMode; S.set.fightMode = 'reel'; for (let i = 0; i < 6; i++) reelTurn(30); S.set.fightMode = m; updateReelUI(); } break;
     case 'yank': G.sim.yank = true; break;
-    case 'net': if (G.phase === 'net') netTap(); break;
   }
 }
 function renderDebug(){
   const el = $('#debug'), fi = G.fight;
   el.textContent = SN.ok
-    ? `기울기 ${SN.tilt.toFixed(0).padStart(4)}° 좌우 ${SN.roll.toFixed(0).padStart(4)}° 자이로각 ${SN.gyro.toFixed(0).padStart(4)}°\n회전 ${SN.rot.toFixed(0).padStart(4)}°/s 흔들림 ${SN.shaky.toFixed(0).padStart(4)} 들어올림 ${angleRise(400).toFixed(0).padStart(3)}° 센서 ${SN.hz}Hz 자이로 ${SN.hasGyro ? (SN.gs > 0 ? '+' : '−') : '없음'}\n단계 ${G.phase}${fi && G.phase === 'fight' ? ` · ${fi.state} 장력 ${fi.tension.toFixed(0)} 체력 ${fi.stam.toFixed(0)} 바늘 ${fi.hookLoss.toFixed(0)}` : ''}${G.hold ? ' · 누르는 중' : ''}`
+    ? `기울기 ${SN.tilt.toFixed(0).padStart(4)}° 좌우 ${SN.roll.toFixed(0).padStart(4)}° 회전 ${SN.rot.toFixed(0).padStart(4)}°/s 들어올림 ${angleRise(400).toFixed(0).padStart(3)}°\n좌우가속 ${SN.linX.toFixed(1).padStart(5)} 센서 ${SN.hz}Hz 자이로 ${SN.hasGyro ? '있음' : '없음'}${G.hold ? ' · 누르는 중' : ''}\n단계 ${G.phase}${fi && G.phase === 'fight' ? ` · ${fi.state} 거리 ${fi.D.toFixed(1)} 장력 ${fi.tension.toFixed(0)} 감기 ${(fi.rps || 0).toFixed(1)}바퀴/s` : ''}`
     : `센서 신호 없음 · 단계 ${G.phase}`;
 }
 
@@ -1608,17 +1617,19 @@ function renderSettings(c){
   c.innerHTML = `<div class="sheethead"><h2>설정</h2>${closeX}</div>
     <div class="scroll"><div class="set">
       <div><label class="t">던지기·챔질·제치기 감도</label>${seg('swing', SWING_P)}</div>
-      <div><label class="t">버티기 판정 (쉬움일수록 조금 흔들려도 괜찮아)</label>${seg('steady', STEADY_P)}</div>
+      <div><label class="t">씨름 방식</label><div class="seg seg2" data-mode>${FIGHT_MODES.map(m => `<button data-m="${m.id}" class="${S.set.fightMode === m.id ? 'on' : ''}">${m.name}</button>`).join('')}</div></div>
+      <div><label class="t">A 방식 흔들기 감도</label>${seg('shake', SHAKE_P)}</div>
       ${tog('vib', '진동', navigator.vibrate ? '이 기기는 진동을 지원해' : '이 브라우저는 진동을 지원하지 않아')}
       ${tog('sound', '소리', '물소리, 드랙, 새소리 · 이어폰 추천')}
       ${tog('sim', '버튼 모드', '센서 대신 화면 버튼으로 테스트')}
       ${tog('debug', '센서값 보기', '기울기·회전·흔들림 수치를 화면에 표시')}
       <div><label class="t">진동 미리 느껴보기</label><div class="vibrow">
-        <button class="ghost" data-vib="nib">톡톡 (예신)</button><button class="ghost" data-vib="bite">쿵 (본신)</button><button class="ghost" data-vib="yank">끌어올려</button></div></div>
+        <button class="ghost" data-vib="nib">톡톡</button><button class="ghost" data-vib="bite">쿵 (낚아채!)</button><button class="ghost" data-vib="yank">끌어올려</button></div></div>
       <button class="ghost danger" id="resetBtn">${resetArmed ? '한 번 더 누르면 처음부터 시작해' : '진행 초기화'}</button>
     </div></div>`;
   wireClose(c);
   c.querySelectorAll('.seg').forEach(s => s.querySelectorAll('button').forEach(b => b.onclick = () => { S.set[s.dataset.k] = +b.dataset.v; persist(); renderSettings(c); renderCue(); }));
+  c.querySelectorAll('[data-m]').forEach(b => b.onclick = () => { S.set.fightMode = b.dataset.m; persist(); renderSettings(c); });
   c.querySelectorAll('[data-t]').forEach(b => b.onclick = () => {
     const k = b.dataset.t; S.set[k] = !S.set[k]; persist();
     if (k === 'debug') $('#debug').hidden = !S.set.debug;
@@ -1626,7 +1637,7 @@ function renderSettings(c){
     if (k === 'sound') { audioInit(); setSound(S.set.sound); }
     renderSettings(c); renderSim(); renderCue();
   });
-  c.querySelectorAll('[data-vib]').forEach(b => b.onclick = () => { audioInit(); const k = b.dataset.vib; vib(k === 'nib' ? FISH_BY_ID.bungeo.nib : k === 'bite' ? [220] : VIB.yank); });
+  c.querySelectorAll('[data-vib]').forEach(b => b.onclick = () => { audioInit(); const k = b.dataset.vib; vib(k === 'nib' ? [12] : k === 'bite' ? [450] : VIB.yank); });
   c.querySelector('#resetBtn').onclick = () => {
     if (!resetArmed) { resetArmed = true; renderSettings(c); setTimeout(() => { resetArmed = false; if (!$('#sheet').hidden && tab === 'settings') renderSettings(c); }, 3000); return; }
     resetArmed = false; const keep = S.set; S = fresh(); S.set = keep; persist(); G.points = [];
@@ -1843,13 +1854,12 @@ $('#selfieRetake').onclick = () => { $('#selfieResult').hidden = true; };
 $('#selfieSave').onclick = saveSelfie;
 
 /* ---------- 입력 ---------- */
-const uiHit = t => t.closest('button, #sheet, #modal, #hud, #tabs, #selfie, #sim');
+const uiHit = t => t.closest('button, #sheet, #modal, #hud, #tabs, #selfie, #sim, #reel');
 window.addEventListener('pointerdown', e => {
   if (G.phase === 'title' || uiHit(e.target)) return;
   audioInit();
   if (G.holdId == null) { G.hold = true; G.holdId = e.pointerId; }
-  if (['wait', 'nibble', 'fight'].includes(G.phase)) reelTap();
-  else if (G.phase === 'net') netTap();
+  if (['wait', 'nibble'].includes(G.phase)) reelTap();
 });
 const endHold = e => { if (G.holdId != null && e.pointerId === G.holdId) { G.hold = false; G.holdId = null; onRelease(); } };
 window.addEventListener('pointerup', endHold);
@@ -1857,7 +1867,7 @@ window.addEventListener('pointercancel', endHold);
 window.addEventListener('keydown', e => {
   if (G.phase === 'title' || e.repeat) return;
   const k = e.key.toLowerCase();
-  const map = {b:'arm', f:'relPerfect', g:'flick', h:'strike', p:'lift', y:'yank', n:'net', arrowleft:'rollL', arrowright:'rollR'};
+  const map = {b:'arm', m:'mode', f:'relPerfect', g:'flick', h:'strike', s:'shake', r:'reel', y:'yank', arrowleft:'rollL', arrowright:'rollR'};
   if (k === ' ' || k === 'enter') { e.preventDefault(); simEmit('tap'); }
   else if (map[k]) simEmit(map[k]);
 });
@@ -1873,6 +1883,7 @@ if (!window.isSecureContext) {
   w.textContent = '지금 주소는 https가 아니라서 폰 센서와 카메라가 꺼져 있어. https 주소로 열어줘 (버튼 모드로는 해볼 수 있어)';
 }
 window.addEventListener('devicemotion', onMotion);
+wireReel();
 
 $('#startBtn').onclick = async () => {
   audioInit();
