@@ -242,7 +242,10 @@ body.reeling.feel #toast{top:calc(var(--safe-t) + 330px)}
 #reel .reelknob{position:absolute;inset:0;pointer-events:none}
 #reel .reelknob span{position:absolute;left:50%;top:6%;width:22%;height:22%;margin-left:-11%;border-radius:50%;background:var(--gold);box-shadow:0 3px 8px rgba(0,0,0,.4), inset 0 -3px 0 rgba(0,0,0,.2)}
 #reel .reelhub{position:absolute;left:50%;top:50%;width:22%;height:22%;margin:-11% 0 0 -11%;border-radius:50%;background:#9aa3a8;box-shadow:inset 0 -3px 0 rgba(0,0,0,.25)}
-#reelGauge{position:absolute;inset:-9%;width:118%;height:118%;pointer-events:none;overflow:visible}
+#reelGauge,#arcGauge{position:absolute;inset:-9%;width:118%;height:118%;pointer-events:none;overflow:visible}
+#agTrack{fill:none;stroke:rgba(232,90,79,.6);stroke-width:10;stroke-linecap:butt}
+#agGreens path{fill:none;stroke:#6fd38f;stroke-width:10;stroke-linecap:butt}
+#agLine{stroke:#f3ede2;stroke-width:2.6;stroke-linecap:round}
 #reelGauge path{fill:none;stroke-linecap:round}
 #rgTrack{stroke:rgba(243,237,226,.14);stroke-width:4}
 #rgOver{stroke:rgba(232,90,79,.35);stroke-width:4}
@@ -273,6 +276,7 @@ body.reeling.feel #toast{top:calc(var(--safe-t) + 330px)}
   <div class="reelring" id="reelRing"></div>
   <div class="reelknob" id="reelKnob"><span></span></div>
   <div class="reelhub"></div>
+  <svg id="arcGauge" viewBox="0 0 100 100" aria-hidden="true" style="display:none"><path id="agTrack" d=""/><g id="agGreens"></g><line x1="50" y1="-1" x2="50" y2="11" id="agLine"/><circle id="agReadL" r="2.6" cx="50" cy="50"/><circle id="agReadR" r="2.6" cx="50" cy="50"/></svg>
   <svg id="reelGauge" viewBox="0 0 100 100" aria-hidden="true"><path id="rgTrack" d=""/><path id="rgOver" d=""/><path id="rgZone" d=""/><circle id="rgNeedle" r="3.6" cx="50" cy="50"/></svg>
   <div class="reellbl">시계 방향으로 돌려</div>
 </div>
@@ -309,7 +313,7 @@ body.reeling.feel #toast{top:calc(var(--safe-t) + 330px)}
     <li><div><b>던지기</b> <span>화면을 누른 채 뒤로 젖혀 조준하고, 앞으로 휘두르면서 엄지를 떼</span></div></li>
     <li><div><b>기다리기</b> <span>톡톡은 물고기가 건드리는 거야. 살짝 까딱이면 꼬여</span></div></li>
     <li><div><b>낚아채기</b> <span>크게 "쿵" 오면 폰을 위로 확 들어</span></div></li>
-    <li><div><b>파이팅</b> <span>화면 릴을 돌려. 물고기가 달리면 천천히, 멈추면 빨리. 진동이 알려주고 초록 구간이 도와줘</span></div></li>
+    <li><div><b>파이팅</b> <span>릴 위 반원에 초록이 오면 그쪽으로 돌려. 오른쪽은 시계, 왼쪽은 반시계. 도망 게이지를 0으로!</span></div></li>
   </ol>
   <p class="warn" id="secureWarn">폰을 꽉 잡고 주변에 사람이나 물건이 없는 곳에서 해줘. 이어폰을 끼면 물소리랑 드랙 소리가 살아나.</p>
   <button class="bigbtn" id="startBtn">낚시 시작</button>
@@ -397,7 +401,7 @@ const SWING_P = [
 // still: 이보다 덜 흔들리면 '버틴다'로 인정 (°/s)
 // A 방식 흔들기 감도: lin=좌우 가속(m/s²), rot=회전(°/s)
 const SHAKE_P = [ {name:'쉬움', lin:4.5, rot:130}, {name:'보통', lin:7, rot:190}, {name:'어려움', lin:10, rot:260} ];
-const FIGHT_MODES = [ {id:'feel', name:'새 릴 (물고기 상태)'}, {id:'reel', name:'이전 릴 (B)'} ];
+const FIGHT_MODES = [ {id:'arc', name:'반원 릴 (새)'}, {id:'feel', name:'속도 릴 (이전)'} ];
 const IDEAL_REL = 5;          // 줄을 놓기 가장 좋은 기울기(°) — 폰이 거의 세워진 순간
 const BITE_WINDOW = 1.3;      // 큰 진동 후 낚아챌 수 있는 시간(s)
 const YANK_WINDOW = 2.4;
@@ -413,11 +417,11 @@ const VIB = {
 /* ---------------- 저장 ---------------- */
 const SAVE_KEY = 'sonmat-v1';
 const fresh = () => ({money:0, earned:0, up:{rod:0,reel:0,line:0,bait:0,bucket:0}, dex:{}, bucket:[],
-  set:{swing:1, shake:1, fightMode:'feel', fm3:1, zone:true, vib:true, sound:true, sim:false, debug:false}});
+  set:{swing:1, shake:1, fightMode:'arc', fm3:1, fm4:1, zone:true, vib:true, sound:true, sim:false, debug:false}});
 let S = fresh();
 try {
   const raw = localStorage.getItem(SAVE_KEY);
-  if (raw) { const o = JSON.parse(raw); S = Object.assign(fresh(), o); S.up = Object.assign(fresh().up, o.up); S.set = Object.assign(fresh().set, o.set); if (S.set.shake == null) S.set.shake = 1; if (!S.set.fm3) { S.set.fightMode = 'feel'; S.set.fm3 = 1; } if (S.set.zone == null) S.set.zone = true; }
+  if (raw) { const o = JSON.parse(raw); S = Object.assign(fresh(), o); S.up = Object.assign(fresh().up, o.up); S.set = Object.assign(fresh().set, o.set); if (S.set.shake == null) S.set.shake = 1; if (!S.set.fm4) { S.set.fightMode = 'arc'; S.set.fm3 = 1; S.set.fm4 = 1; } if (S.set.zone == null) S.set.zone = true; }
 } catch (e) {}
 function persist(){ try { localStorage.setItem(SAVE_KEY, JSON.stringify(S)); } catch (e) {} }
 const swingP = () => SWING_P[S.set.swing] || SWING_P[1];
@@ -825,8 +829,9 @@ function hook(rt){
   G.reelAcc = 0; G.reelNotch = 0; G.sim.rps = 0;
   // 새 릴: 걸리자마자 물고기가 차고 나감
   if (S.set.fightMode === 'feel') { G.fight.state = 'run'; G.fight.stT = rand(1.0, 1.6); }
+  if (S.set.fightMode === 'arc') arcInit(G.fight);
   setPhase('fight');
-  showReel(S.set.fightMode === 'reel' || S.set.fightMode === 'feel');
+  showReel(true);
 }
 
 /* ---------- 4. 파이팅 (A: 흔들기 / B: 릴 감기) ---------- */
@@ -863,6 +868,7 @@ function reelTurn(deg){
   }
 }
 function fightUpdate(dt, sensor){
+  if (S.set.fightMode === 'arc') { arcFightUpdate(dt, sensor); return; }
   if (S.set.fightMode === 'feel') { feelFightUpdate(dt, sensor); return; }
   const fi = G.fight, f = G.plan, ff = f.fight, line = S.up.line, mode = S.set.fightMode;
   const sr = fi.stam / fi.max;
@@ -1012,6 +1018,71 @@ function feelFightUpdate(dt, sensor){
   if (fi.D <= 2.5) endFight();
   else updateCueBars();
 }
+/* ---------- 4. 파이팅 (반원 릴) ----------
+   위쪽 '도망' 게이지: 가만히 있어도 계속 오름. 50%에서 시작, 100% = 놓침, 0% = 잡음
+   릴 위쪽 반원: 기본 빨강. 초록이 왼쪽 끝/오른쪽 끝에서 나와 가운데 판정선으로 이동하고, 닿은 부분부터 사라짐 (한 번에 한쪽만)
+   시계 방향으로 돌리면 판정선 오른쪽, 반시계면 왼쪽을 읽음. 초록이면 게이지 감소, 빨강이면 크게 증가. 빨리 돌릴수록 효과가 큼 */
+const ARC = {readOff:8, greenK:14, redK:28, rpsCap:5, notch:45};   // 초록: 초당 1바퀴에 -14%, 빨강: +28%
+function arcParams(f){
+  const k = clamp((f.str - 0.7) / 3.5, 0, 1);      // 0 = 약한 물고기 … 1 = 가장 센 물고기
+  return {travel:1.4 - 0.45 * k, len:44 - 16 * k, rise:3 + 2.5 * k, switchP:0.3 + 0.4 * k, gap:[0.15, 0.45]};
+}
+function arcInit(fi){
+  Object.assign(fi, {g:50, greens:[], nextSide:Math.random() < .5 ? -1 : 1, spawnAt:0.6, arps:0, read:null, readSide:0, notch:0, warnT:0, nearOn:false});
+}
+// side: -1 왼쪽, 1 오른쪽 / lead: 끝에서 판정선 쪽으로 이동한 각도(0~90) / len: 초록 길이(°)
+function arcHit(fi, side){ const pos = 90 - ARC.readOff; return fi.greens.some(g => g.side === side && g.lead >= pos && g.lead - g.len <= pos); }
+function arcTurn(deg){
+  const fi = G.fight; if (!fi || G.phase !== 'fight') return;
+  fi.reelRate += deg; G.reelAcc += deg; fi.notch += Math.abs(deg);
+  while (fi.notch >= ARC.notch) {
+    fi.notch -= ARC.notch;
+    if (arcHit(fi, deg > 0 ? 1 : -1)) { vib([10]); tone(1700, .02, 'square', .035); }     // 초록: 또렷한 딱
+    else { vib([35, 20, 35]); tone(160, .06, 'sawtooth', .05); }                          // 빨강: 드드득
+  }
+}
+function arcFightUpdate(dt, sensor){
+  const fi = G.fight, f = G.plan, p = arcParams(f);
+  if (S.set.sim && G.sim.rps) arcTurn(G.sim.rps * 360 * dt);
+  fi.t += dt;
+  // 초록 생성: 앞 초록이 판정선에 닿으면 잠깐 뒤 다음 초록. 반대쪽으로 바뀔 땐 지금 초록이 다 사라진 뒤에
+  const last = fi.greens[fi.greens.length - 1];
+  if ((!last || last.lead >= 90) && fi.spawnAt == null) fi.spawnAt = fi.t + rand(...p.gap);
+  if (fi.spawnAt != null && fi.t >= fi.spawnAt && !(fi.greens.length && fi.greens[fi.greens.length - 1].side !== fi.nextSide)) {
+    fi.greens.push({side:fi.nextSide, lead:0, len:p.len * rand(0.85, 1.15)});
+    fi.nextSide = Math.random() < p.switchP ? -fi.nextSide : fi.nextSide;
+    fi.spawnAt = null;
+  }
+  for (const g of fi.greens) g.lead += dt * 90 / p.travel;
+  fi.greens = fi.greens.filter(g => g.lead - g.len < 90);
+  // 읽기
+  const rps = fi.reelRate / 360 / Math.max(dt, 1e-3); fi.reelRate = 0;
+  fi.arps = lerp(fi.arps, rps, 1 - Math.exp(-dt * 20));     // 약 0.05초: 멈추면 바로 읽기도 멈춤
+  const v = Math.min(Math.abs(fi.arps), ARC.rpsCap);
+  fi.read = null; fi.readSide = 0;
+  if (v > 0.15) {
+    fi.readSide = fi.arps > 0 ? 1 : -1;
+    const hit = arcHit(fi, fi.readSide);
+    fi.read = hit ? 'green' : 'red';
+    fi.g += (hit ? -ARC.greenK : ARC.redK) * v * dt;
+  }
+  fi.g += p.rise * dt;
+  // 위험 경고
+  if (fi.g > 80) { fi.warnT -= dt; if (fi.warnT <= 0) { fi.warnT = 0.7; vib([8, 60, 8]); } if (!fi.nearOn) { fi.nearOn = true; fi.near++; } }
+  else if (fi.g < 70) fi.nearOn = false;
+  // 화면 연출용
+  const cur = fi.greens[0];
+  if (cur) fi.dir = cur.side;
+  fi.X = clamp(fi.X + fi.dir * 0.12 * dt, -0.9, 0.9);
+  fi.state = fi.read === 'red' ? 'run' : 'rest';
+  fi.tension = clamp(25 + v * 10 + (fi.read === 'red' ? 35 : 0), 0, 100);
+  fi.D = 2.5 + (fi.D0 - 2.5) * clamp(fi.g, 0, 100) / 50;
+  dragSound(fi.read === 'red' ? 0.6 : 0, fi.dir);
+  updateReelUI();
+  if (fi.g >= 100) { lose('물고기가 도망갔어! 초록이 오는 쪽으로 돌려'); return; }
+  if (fi.g <= 0) { fi.g = 0; endFight(); return; }
+  updateCueBars();
+}
 function endFight(){
   vibStop(); dragSound(0, 0); showReel(false);
   vib(VIB.yank); sfx.yank(); startYankWatch();
@@ -1075,11 +1146,32 @@ function lose(msg, wasFish = true){
 
 /* ---------- 릴 UI (B 방식) ---------- */
 const reelEl = () => $('#reel');
-function showReel(on){ const el = reelEl(); if (el) el.hidden = !on; document.body.classList.toggle('reeling', !!on); const g = $('#reelGauge'); if (g) g.style.display = on && S.set.fightMode === 'feel' && S.set.zone ? '' : 'none'; }
+function showReel(on){
+  const el = reelEl(); if (el) el.hidden = !on; document.body.classList.toggle('reeling', !!on);
+  const arc = S.set.fightMode === 'arc';
+  const g = $('#reelGauge'); if (g) g.style.display = on && S.set.fightMode === 'feel' && S.set.zone ? '' : 'none';
+  const ag = $('#arcGauge'); if (ag) ag.style.display = on && arc ? '' : 'none';
+  const lb = el && el.querySelector('.reellbl'); if (lb) lb.textContent = arc ? '초록이 오는 쪽으로 돌려' : '시계 방향으로 돌려';
+}
+// 반원 게이지 좌표: 왼쪽 끝(180°) → 위(270°) ← 오른쪽 끝(360°)
+const arcAng = (side, q) => (side < 0 ? 180 + q : 360 - q) * Math.PI / 180;
+const arcPt = (a, r) => `${(50 + r * Math.cos(a)).toFixed(2)} ${(50 + r * Math.sin(a)).toFixed(2)}`;
+function arcSeg(side, q0, q1, r = 47){
+  if (q1 - q0 < 0.3) return '';
+  return `M${arcPt(arcAng(side, q0), r)} A${r} ${r} 0 0 ${side < 0 ? 1 : 0} ${arcPt(arcAng(side, q1), r)}`;
+}
 function updateReelUI(){
   const k = $('#reelKnob'), fi = G.fight; if (!k || !fi) return;
   k.style.transform = `rotate(${G.reelAcc}deg)`;
   const ring = $('#reelRing');
+  if (S.set.fightMode === 'arc') {
+    $('#agGreens').innerHTML = fi.greens.map(g => `<path d="${arcSeg(g.side, Math.max(0, g.lead - g.len), Math.min(90, g.lead))}"/>`).join('');
+    const col = fi.read === 'green' ? '#8ef0aa' : fi.read === 'red' ? '#ff6b5a' : 'rgba(243,237,226,.35)';
+    $('#agReadR').setAttribute('fill', fi.readSide === 1 ? col : 'rgba(243,237,226,.25)');
+    $('#agReadL').setAttribute('fill', fi.readSide === -1 ? col : 'rgba(243,237,226,.25)');
+    if (ring) ring.style.borderColor = fi.read === 'red' ? 'var(--bad)' : fi.read === 'green' ? 'var(--good)' : 'rgba(243,237,226,.35)';
+    return;
+  }
   if (S.set.fightMode === 'feel') {
     const col = {good:'rgba(243,237,226,.35)', heavy:'var(--bobber)', over:'var(--bad)', slack:'#7fb6e8'}[fi.cond];
     if (ring) ring.style.borderColor = col;
@@ -1102,10 +1194,18 @@ function gaugeArc(u0, u1, r = 47){
   const a0 = gaugeAng(u0), a1 = gaugeAng(u1), large = (u1 - u0) * 270 > 180 ? 1 : 0;
   return `M${(50 + r * Math.cos(a0)).toFixed(2)} ${(50 + r * Math.sin(a0)).toFixed(2)} A${r} ${r} 0 ${large} 1 ${(50 + r * Math.cos(a1)).toFixed(2)} ${(50 + r * Math.sin(a1)).toFixed(2)}`;
 }
+function initArcGauge(){
+  $('#agTrack').setAttribute('d', `M${arcPt(Math.PI, 47)} A47 47 0 0 1 ${arcPt(Math.PI * 1.5, 47)} A47 47 0 0 1 ${arcPt(Math.PI * 2, 47)}`);
+  const pr = arcAng(1, 90 - ARC.readOff), pl = arcAng(-1, 90 - ARC.readOff);
+  const R = $('#agReadR'), L = $('#agReadL');
+  R.setAttribute('cx', (50 + 39 * Math.cos(pr)).toFixed(2)); R.setAttribute('cy', (50 + 39 * Math.sin(pr)).toFixed(2));
+  L.setAttribute('cx', (50 + 39 * Math.cos(pl)).toFixed(2)); L.setAttribute('cy', (50 + 39 * Math.sin(pl)).toFixed(2));
+}
 let reelPtr = null;
 function reelAngle(e){ const r = reelEl().getBoundingClientRect(); return Math.atan2(e.clientY - (r.top + r.height / 2), e.clientX - (r.left + r.width / 2)) * 180 / Math.PI; }
 function wireReel(){
   const el = reelEl();
+  initArcGauge();
   $('#rgTrack').setAttribute('d', gaugeArc(0, 1));
   el.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); audioInit(); reelPtr = {id:e.pointerId, a:reelAngle(e)}; try { el.setPointerCapture(e.pointerId); } catch (_) {} });
   el.addEventListener('pointermove', e => {
@@ -1113,7 +1213,8 @@ function wireReel(){
     const a = reelAngle(e); let d = a - reelPtr.a;
     if (d > 180) d -= 360; if (d < -180) d += 360;
     reelPtr.a = a;
-    if (d > 0) reelTurn(d);                      // 시계 방향만 감기
+    if (S.set.fightMode === 'arc') arcTurn(d);   // 반원 릴: 양방향 (시계 = +)
+    else if (d > 0) reelTurn(d);                 // 그 외: 시계 방향만 감기
   });
   const end = e => { if (reelPtr && e.pointerId === reelPtr.id) reelPtr = null; };
   el.addEventListener('pointerup', end); el.addEventListener('pointercancel', end);
@@ -1565,8 +1666,8 @@ const modeName = () => (FIGHT_MODES.find(m => m.id === S.set.fightMode) || FIGHT
 function renderCue(){
   const el = $('#cue'), ph = G.phase;
   el.hidden = ['title', 'result', 'reveal'].includes(ph) || tab !== 'fish';
-  el.classList.toggle('top', ph === 'fight' && (S.set.fightMode === 'reel' || S.set.fightMode === 'feel'));
-  document.body.classList.toggle('feel', ph === 'fight' && S.set.fightMode === 'feel');
+  el.classList.toggle('top', ph === 'fight');
+  document.body.classList.toggle('feel', ph === 'fight' && S.set.fightMode !== 'reel');
   if (el.hidden) return;
   const P = swingP();
   const eb = label => `<div class="eyebrow"><span>${label}</span>${stepsHtml(STEP_OF[ph] || 0)}</div>`;
@@ -1576,7 +1677,7 @@ function renderCue(){
     else h = `${eb('던지기 준비')}<div class="verb">누른 채 뒤로</div><div class="sub">화면을 엄지로 꾹 누른 채 폰을 어깨 뒤로 넘겨. 진동이 오면 준비 끝</div>
       <div class="bar"><div class="mark" style="left:${tiltPct(P.prep)}%"></div><div class="dot" id="tiltDot"></div></div>
       <div class="barlbl"><span>앞으로 숙임</span><span>준비선</span><span>뒤로 젖힘</span></div>
-      <button class="chip" id="modeChip">초록 구간: ${S.set.zone ? '보임' : '숨김 (진동만)'} · 바꾸기</button>`;
+      <button class="chip" id="modeChip">씨름 방식: ${modeName()} · 바꾸기</button>`;
   } else if (ph === 'ready') {
     h = `${eb('던지기')}<div class="verb hot">휘두르며 떼!</div><div class="sub">지금 좌우로 기울여 조준하고, 앞으로 세게 휘두르면서 엄지를 떼. 가장 빠르게 휘두르는 순간에 떼면 멀리 가</div>
       <div class="bar"><div class="fill" id="chargeFill" style="background:var(--gold)"></div></div><div class="barlbl"><span>대에 실린 힘</span><span>휘두르면 조준 고정</span></div>`;
@@ -1586,6 +1687,10 @@ function renderCue(){
     // 입질 단계는 화면으로 알려주지 않음. 진동으로만 느껴
     h = `${eb('기다리기')}<div class="verb calm">물속을 느껴봐</div><div class="sub">진동이 크게 "쿵" 오면 폰을 위로 확 들어 올려. 그 전에 들면 빈 바늘! 화면을 톡 탭하면 찌가 까딱여서 물고기가 꼬여</div>
       <div class="barlbl"><span id="waitLbl">찌까지 ${G.lureD.toFixed(1)}m</span><span>탭: 고패질</span></div>`;
+  } else if (ph === 'fight' && S.set.fightMode === 'arc') {
+    h = `${eb('파이팅')}<div class="verb gold">초록 쪽으로 돌려!</div><div class="sub">오른쪽 초록은 시계 방향, 왼쪽 초록은 반시계 방향. 빨간 데서 돌리면 오히려 도망가</div>
+      <div class="meters"><span>도망</span><div class="bar"><div class="fill" id="escFill"></div></div></div>
+      <div class="barlbl"><span id="escLbl"></span><span id="dirLbl"></span></div>`;
   } else if (ph === 'fight' && S.set.fightMode === 'feel') {
     const fi = G.fight, tired = fi.state === 'rest' && fi.stam / fi.max < 0.25;
     const C = tired ? ['gold', '지쳤다! 쭉 감아', '물고기 힘이 빠졌어. 지금 끌어와'] : {
@@ -1616,11 +1721,11 @@ function renderCue(){
   }
   el.innerHTML = `<div class="card">${h}</div>`;
   const gs = $('#goSell'); if (gs) gs.onclick = () => openTab('bucket');
-  const mc = $('#modeChip'); if (mc) mc.onclick = e => { e.stopPropagation(); S.set.zone = !S.set.zone; persist(); toast(S.set.zone ? '초록 구간 보임' : '초록 구간 숨김 · 진동과 소리만으로'); renderCue(); };
+  const mc = $('#modeChip'); if (mc) mc.onclick = e => { e.stopPropagation(); toggleFightMode(); };
   updateCueBars();
 }
 function toggleFightMode(){
-  S.set.fightMode = S.set.fightMode === 'feel' ? 'reel' : 'feel'; persist();
+  S.set.fightMode = S.set.fightMode === 'arc' ? 'feel' : 'arc'; persist();
   toast(`씨름 방식: ${modeName()}`); renderCue(); renderSim();
 }
 const tiltPct = t => clamp((t + 60) / 150 * 100, 0, 100);
@@ -1629,6 +1734,13 @@ function updateCueBars(){
   if (ph === 'idle') { const d = $('#tiltDot'); if (d) d.style.left = tiltPct(S.set.sim ? -20 : SN.tilt) + '%'; }
   else if (ph === 'ready') { const f = $('#chargeFill'); if (f && G.cast) f.style.width = (G.cast.charge * 100).toFixed(0) + '%'; }
   else if (ph === 'wait' || ph === 'nibble' || ph === 'bite') { const l = $('#waitLbl'); if (l) l.textContent = `찌까지 ${G.lureD.toFixed(1)}m`; }
+  else if (ph === 'fight' && S.set.fightMode === 'arc') {
+    const fi = G.fight, e = $('#escFill');
+    if (e) { e.style.width = clamp(fi.g, 0, 100).toFixed(1) + '%'; e.style.background = fi.g > 80 ? 'var(--bad)' : fi.g > 55 ? 'var(--bobber)' : 'var(--good)'; }
+    const l = $('#escLbl'); if (l) l.textContent = fi.g > 80 ? `도망치기 직전! ${fi.g.toFixed(0)}%` : `${fi.g.toFixed(0)}% · 0이 되면 잡아`;
+    const dr = $('#dirLbl');
+    if (dr) { dr.textContent = fi.read === 'green' ? '잘 감기는 중' : fi.read === 'red' ? '빨강! 멈추거나 반대로' : ''; dr.style.color = fi.read === 'green' ? 'var(--good)' : 'var(--bad)'; }
+  }
   else if (ph === 'fight') {
     const fi = G.fight, t = $('#tenFill'), d = $('#distFill');
     if (t) { t.style.width = clamp(fi.tension, 0, 100).toFixed(1) + '%'; t.style.background = fi.tension > 85 ? 'var(--bad)' : fi.tension > 60 ? 'var(--bobber)' : 'var(--good)'; }
@@ -1657,7 +1769,7 @@ function renderSim(){
     wait:  [['tap', '고패질 (스페이스)'], ['strike', '낚아채기 (H)']],
     nibble:[['tap', '고패질'], ['strike', '낚아채기 (H)']],
     bite:  [['strike', '낚아채기 (H)']],
-    fight: S.set.fightMode === 'feel' ? [['rps0', '멈춤 (0)'], ['rps1', '천천히 (1)'], ['rps2', '보통 (2)'], ['rps3', '빠르게 (3)']] : reel ? [['reel', '릴 반 바퀴 (R)']] : [['shake', '흔들기 (S)']],
+    fight: S.set.fightMode === 'arc' ? [['arcL', '반시계 (Q)'], ['arc0', '멈춤 (W)'], ['arcR', '시계 (E)']] : S.set.fightMode === 'feel' ? [['rps0', '멈춤 (0)'], ['rps1', '천천히 (1)'], ['rps2', '보통 (2)'], ['rps3', '빠르게 (3)']] : reel ? [['reel', '릴 반 바퀴 (R)']] : [['shake', '흔들기 (S)']],
     yank:  [['yank', '뒤로 제치기 (Y)']],
   }[G.phase] || [];
   el.innerHTML = `<div class="lbl">버튼 모드 · 센서 대신 눌러서 테스트</div>` + B.map(([e, t]) => `<button data-e="${e}">${t}</button>`).join('');
@@ -1674,6 +1786,9 @@ function simEmit(e){
     case 'rollL': G.sim.roll = -22; G.sim.rollT = 3; break;
     case 'rollR': G.sim.roll = 22; G.sim.rollT = 3; break;
     case 'tap': flick(); break;
+    case 'arcL': G.sim.rps = -3; break;
+    case 'arc0': G.sim.rps = 0; break;
+    case 'arcR': G.sim.rps = 3; break;
     case 'rps0': G.sim.rps = 0; break;
     case 'rps1': G.sim.rps = 2; break;
     case 'rps2': G.sim.rps = 3.25; break;
@@ -2039,7 +2154,7 @@ window.addEventListener('pointercancel', endHold);
 window.addEventListener('keydown', e => {
   if (G.phase === 'title' || e.repeat) return;
   const k = e.key.toLowerCase();
-  const map = {b:'arm', m:'mode', f:'relPerfect', g:'flick', h:'strike', s:'shake', r:'reel', y:'yank', arrowleft:'rollL', arrowright:'rollR', '0':'rps0', '1':'rps1', '2':'rps2', '3':'rps3'};
+  const map = {b:'arm', m:'mode', f:'relPerfect', g:'flick', h:'strike', s:'shake', r:'reel', y:'yank', arrowleft:'rollL', arrowright:'rollR', '0':'rps0', '1':'rps1', '2':'rps2', '3':'rps3', q:'arcL', w:'arc0', e:'arcR'};
   if (k === ' ' || k === 'enter') { e.preventDefault(); simEmit('tap'); }
   else if (map[k]) simEmit(map[k]);
 });
