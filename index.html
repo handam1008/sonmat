@@ -908,13 +908,13 @@ function fightUpdate(dt, sensor){
 /* ---------- 4. 파이팅 (새 릴): 물고기 상태가 주인공, 초록 구간은 보조 표시 ----------
    달림: 천천히 꾸준히 (멈추면 느슨) · 멈춤: 빨리 · 다가옴/점프: 아주 빨리 · 지침: 편하게
    너무 빨리 감으면 무리가 쌓여 끊어지고, 너무 느리면 느슨함이 쌓여 바늘이 빠짐 */
-const RPS_MAX = 4;               // 게이지 끝 = 초당 4바퀴
+const RPS_MAX = 10;              // 게이지 끝 = 초당 10바퀴
 function feelZone(fi, f){
   const st = fi.state, sr = fi.stam / fi.max;
-  const z = st === 'run' ? [0.5, 1.1] : st === 'rest' ? [0.9, 1.7] : [1.2, 2.2];    // 초당 바퀴 (상태 차이는 적당히만)
+  const z = st === 'run' ? [1.25, 2.75] : st === 'rest' ? [2.25, 4.25] : [3, 5.5];  // 초당 바퀴 (막 감는 맛: 예전의 2.5배)
   const narrow = clamp(1 - 0.07 * (f.str - 1), 0.75, 1.05) * (sr < 0.25 ? 1.5 : 1);
   const mid = (z[0] + z[1]) / 2, half = (z[1] - z[0]) / 2 * narrow;
-  return [Math.max(0.12, mid - half), (mid + half) * (1 + 0.08 * S.up.line)];
+  return [Math.max(0.3, mid - half), (mid + half) * (1 + 0.08 * S.up.line)];
 }
 function nextFeelState(fi, f){
   const ff = f.fight, sr = fi.stam / fi.max, prev = fi.state;
@@ -933,7 +933,8 @@ function nextFeelState(fi, f){
 }
 // 손가락으로 돌린 만큼. 상태(cond)에 따라 감기는 양·손잡이·진동이 전부 달라짐
 const FEEL_EFF = {good:1, heavy:0.75, over:0.35, slack:1};     // 실제로 감기는 비율 (서서히 바뀜)
-const FEEL_PER_REV = 0.9;                                      // 한 바퀴에 감기는 줄 = 릴 성능 × 0.9 (예전 1.6)
+const FEEL_PER_REV = 0.36;                                     // 한 바퀴에 감기는 줄 = 릴 성능 × 0.36 (2.5배 빨리 돌리니 한 바퀴 양은 1/2.5)
+const FEEL_NOTCH = 60;                                         // 딸깍 간격(°): 빨리 돌려도 딱딱이 뭉개지지 않게
 const FEEL_KNOB = {good:1, heavy:0.6, over:0.25, slack:1.2};   // 손잡이가 손가락을 따라오는 비율 (서서히 바뀜)
 function reelTurnFeel(deg){
   const fi = G.fight, perRev = reelStep(S.up.reel) * FEEL_PER_REV, cond = fi.cond;
@@ -945,9 +946,9 @@ function reelTurnFeel(deg){
   if (len > 0) fi.D = Math.max(0, fi.D - len * fi.effS);
   if (cond === 'over') {                                       // 안 감김: 돌리는 내내 부르르르
     if (G.time - fi.buzzT > 0.15) { fi.buzzT = G.time; vib([150]); sfx.strain(); }
-    G.reelNotch %= 30; return;
+    G.reelNotch %= FEEL_NOTCH; return;
   }
-  while (G.reelNotch >= 30) { G.reelNotch -= 30; feelClick(cond); }
+  while (G.reelNotch >= FEEL_NOTCH) { G.reelNotch -= FEEL_NOTCH; feelClick(cond); }
 }
 function feelClick(cond){
   if (cond === 'slack') { vib([4]); tone(2200, .01, 'square', .015); }                                         // 너무 가벼움
@@ -981,7 +982,7 @@ function feelFightUpdate(dt, sensor){
     G.reelAcc -= payDeg; fi.dragDeg += payDeg;
     fi.X = clamp(fi.X + fi.dir * fi.speed * 0.04 * dt, -0.95, 0.95);
     if (fi.dragDeg >= 120) { fi.dragDeg = 0; tone(2600, .01, 'square', .02); if (G.time - fi.lastReelT > 0.3) vib([6]); }
-    dragSound(fi.speed / 3.4 * (v > 0.2 ? 0.7 : 1), fi.dir);
+    dragSound(fi.speed / 3.4 * (v > 0.5 ? 0.7 : 1), fi.dir);
     fi.hsT -= dt;                                               // 머리 흔들기: 쿵… 쿵
     if (fi.hsT <= 0) { fi.hsT = rand(0.6, 1.1) / (0.7 + ff.shake * 2); vib([Math.round(45 + 12 * f.str)]); G.shakeCam = Math.max(G.shakeCam, 3); }
   } else {
@@ -1674,9 +1675,9 @@ function simEmit(e){
     case 'rollR': G.sim.roll = 22; G.sim.rollT = 3; break;
     case 'tap': flick(); break;
     case 'rps0': G.sim.rps = 0; break;
-    case 'rps1': G.sim.rps = 0.8; break;
-    case 'rps2': G.sim.rps = 1.3; break;
-    case 'rps3': G.sim.rps = 1.7; break;
+    case 'rps1': G.sim.rps = 2; break;
+    case 'rps2': G.sim.rps = 3.25; break;
+    case 'rps3': G.sim.rps = 4.25; break;
     case 'flick': if (G.phase === 'wait') flick(); break;
     case 'strike': G.sim.strike = true; break;
     case 'shake': if (G.phase === 'fight') { const m = S.set.fightMode; S.set.fightMode = 'shake'; shakeReel(1.3); S.set.fightMode = m; } break;
