@@ -421,7 +421,7 @@ const fresh = () => ({money:0, earned:0, up:{rod:0,reel:0,line:0,bait:0,bucket:0
 let S = fresh();
 try {
   const raw = localStorage.getItem(SAVE_KEY);
-  if (raw) { const o = JSON.parse(raw); S = Object.assign(fresh(), o); S.up = Object.assign(fresh().up, o.up); S.set = Object.assign(fresh().set, o.set); if (S.set.shake == null) S.set.shake = 1; if (!S.set.fm4) { S.set.fightMode = 'arc'; S.set.fm3 = 1; S.set.fm4 = 1; } if (S.set.zone == null) S.set.zone = true; }
+  if (raw) { const o = JSON.parse(raw); S = Object.assign(fresh(), o); S.up = Object.assign(fresh().up, o.up); S.set = Object.assign(fresh().set, o.set); if (S.set.shake == null) S.set.shake = 1; if (!(o.set && o.set.fm4)) { S.set.fightMode = 'arc'; S.set.fm3 = 1; S.set.fm4 = 1; persist(); } /* 예전 저장은 반원 릴로 전환 */ if (S.set.zone == null) S.set.zone = true; }
 } catch (e) {}
 function persist(){ try { localStorage.setItem(SAVE_KEY, JSON.stringify(S)); } catch (e) {} }
 const swingP = () => SWING_P[S.set.swing] || SWING_P[1];
