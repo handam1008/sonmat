@@ -1022,10 +1022,10 @@ function feelFightUpdate(dt, sensor){
    위쪽 '도망' 게이지: 가만히 있어도 계속 오름. 50%에서 시작, 100% = 놓침, 0% = 잡음
    릴 위쪽 반원: 기본 빨강. 초록이 왼쪽 끝/오른쪽 끝에서 나와 가운데 판정선으로 이동하고, 닿은 부분부터 사라짐 (한 번에 한쪽만)
    시계 방향으로 돌리면 판정선 오른쪽, 반시계면 왼쪽을 읽음. 초록이면 게이지 감소, 빨강이면 크게 증가. 빨리 돌릴수록 효과가 큼 */
-const ARC = {readOff:8, greenK:14, redK:28, rpsCap:5, notch:45};   // 초록: 초당 1바퀴에 -14%, 빨강: +28%
+const ARC = {readOff:8, greenK:20, redK:40, rpsCap:5, notch:45};   // 초록: 초당 1바퀴에 -20%, 빨강: +40%
 function arcParams(f){
   const k = clamp((f.str - 0.7) / 3.5, 0, 1);      // 0 = 약한 물고기 … 1 = 가장 센 물고기
-  return {travel:1.4 - 0.45 * k, len:44 - 16 * k, rise:3 + 2.5 * k, switchP:0.3 + 0.4 * k, gap:[0.15, 0.45]};
+  return {travel:1.4 - 0.45 * k, len:70 - 20 * k, rise:3 + 2.5 * k, switchP:0.3 + 0.4 * k, gap:[0.15, 0.45]};
 }
 function arcInit(fi){
   Object.assign(fi, {g:50, greens:[], nextSide:Math.random() < .5 ? -1 : 1, spawnAt:0.6, arps:0, read:null, readSide:0, notch:0, warnT:0, nearOn:false});
