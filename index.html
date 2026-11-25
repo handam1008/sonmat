@@ -1022,13 +1022,13 @@ function feelFightUpdate(dt, sensor){
    위쪽 '도망' 게이지: 가만히 있어도 계속 오름. 50%에서 시작, 100% = 놓침, 0% = 잡음
    릴 위쪽 반원: 기본 빨강. 초록이 왼쪽 끝/오른쪽 끝에서 나와 가운데 판정선으로 이동하고, 닿은 부분부터 사라짐 (한 번에 한쪽만)
    시계 방향으로 돌리면 판정선 오른쪽, 반시계면 왼쪽을 읽음. 초록이면 게이지 감소, 빨강이면 크게 증가. 빨리 돌릴수록 효과가 큼 */
-const ARC = {readOff:8, greenK:20, redK:40, rpsCap:5, notch:45};   // 초록: 초당 1바퀴에 -20%, 빨강: +40%
+const ARC = {readOff:8, greenK:8, redK:16, rpsCap:5, notch:45};    // 초록: 초당 1바퀴에 -8%, 빨강: +16% (초록이 거의 끊김 없이 이어지므로)
 function arcParams(f){
   const k = clamp((f.str - 0.7) / 3.5, 0, 1);      // 0 = 약한 물고기 … 1 = 가장 센 물고기
-  return {travel:1.4 - 0.45 * k, len:70 - 20 * k, rise:3 + 2.5 * k, switchP:0.3 + 0.4 * k, gap:[0.15, 0.45]};
+  return {travel:1.4 - 0.45 * k, len:80 - 25 * k, rise:3 + 2 * k, switchP:0.8 - 0.2 * k, gap:[0.05, 0.05 + 0.2 * k]};
 }
 function arcInit(fi){
-  Object.assign(fi, {g:50, greens:[], nextSide:Math.random() < .5 ? -1 : 1, spawnAt:0.6, arps:0, read:null, readSide:0, notch:0, warnT:0, nearOn:false});
+  Object.assign(fi, {g:50, greens:[], nextSide:Math.random() < .5 ? -1 : 1, nextArr:0.9, arps:0, read:null, readSide:0, notch:0, warnT:0, nearOn:false});
 }
 // side: -1 왼쪽, 1 오른쪽 / lead: 끝에서 판정선 쪽으로 이동한 각도(0~90) / len: 초록 길이(°)
 function arcHit(fi, side){ const pos = 90 - ARC.readOff; return fi.greens.some(g => g.side === side && g.lead >= pos && g.lead - g.len <= pos); }
@@ -1045,15 +1045,16 @@ function arcFightUpdate(dt, sensor){
   const fi = G.fight, f = G.plan, p = arcParams(f);
   if (S.set.sim && G.sim.rps) arcTurn(G.sim.rps * 360 * dt);
   fi.t += dt;
-  // 초록 생성: 앞 초록이 판정선에 닿으면 잠깐 뒤 다음 초록. 반대쪽으로 바뀔 땐 지금 초록이 다 사라진 뒤에
-  const last = fi.greens[fi.greens.length - 1];
-  if ((!last || last.lead >= 90) && fi.spawnAt == null) fi.spawnAt = fi.t + rand(...p.gap);
-  if (fi.spawnAt != null && fi.t >= fi.spawnAt && !(fi.greens.length && fi.greens[fi.greens.length - 1].side !== fi.nextSide)) {
-    fi.greens.push({side:fi.nextSide, lead:0, len:p.len * rand(0.85, 1.15)});
+  // 초록 생성: 앞 초록이 판정 자리를 떠나는 순간(+짧은 틈) 다음 초록이 도착하도록 미리 출발시킴
+  // → 오른쪽 초록이 끝나자마자 왼쪽 초록이 이어지는 흐름. 판정 자리에는 항상 한쪽만 있음
+  const spd = 90 / p.travel, pos = 90 - ARC.readOff;
+  while (fi.nextArr - pos / spd <= fi.t) {
+    const len = p.len * rand(0.9, 1.1);
+    fi.greens.push({side:fi.nextSide, lead:(fi.t - (fi.nextArr - pos / spd)) * spd, len});
+    fi.nextArr += len / spd + rand(...p.gap);
     fi.nextSide = Math.random() < p.switchP ? -fi.nextSide : fi.nextSide;
-    fi.spawnAt = null;
   }
-  for (const g of fi.greens) g.lead += dt * 90 / p.travel;
+  for (const g of fi.greens) g.lead += dt * spd;
   fi.greens = fi.greens.filter(g => g.lead - g.len < 90);
   // 읽기
   const rps = fi.reelRate / 360 / Math.max(dt, 1e-3); fi.reelRate = 0;
